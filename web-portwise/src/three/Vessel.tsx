@@ -256,7 +256,7 @@ function VesselLabel({ vessel, y }: { vessel: Vessel; y: number }) {
   }
   return (
     <Chip3D position={[0, y, 0]} tone={tone} pulse={pulse} active={selected} onClick={() => open({ kind: "vessel", id: vessel.id })}>
-      <span className="font-mono text-[12px]">{text}</span>
+      <span className="font-mono">{text}</span>
     </Chip3D>
   );
 }
@@ -388,7 +388,7 @@ function TransitLabel({ name, id }: { name: string; id: string }) {
   if (Math.abs(f.x) > 360) return null;
   return (
     <Chip3D position={[0, DECK_Y + 8, 0]} tone="ink">
-      <span className="font-mono text-[11.5px] text-slate">
+      <span className="font-mono text-slate">
         {name} · {fmtKn(f.sog)} {f.cog > 180 ? "← westbound" : "→ eastbound"}
       </span>
     </Chip3D>

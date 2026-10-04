@@ -26,19 +26,21 @@ interface Chip3DProps {
 export function Chip3D({ position, tone = "signal", active, pulse, onClick, children }: Chip3DProps) {
   return (
     <Html position={position} zIndexRange={[10, 0]} style={{ pointerEvents: "none" }}>
-      <div className="pointer-events-none -translate-x-1/2 -translate-y-full pb-2">
+      <div className="pointer-events-none -translate-x-1/2 -translate-y-full pb-1.5">
         <button
           type="button"
           onClick={onClick}
           className={cn(
-            "pointer-events-auto flex items-center gap-2 whitespace-nowrap rounded-full border bg-paper px-3 py-1.5 text-[12.5px] font-semibold text-ink shadow-panel transition-transform hover:-translate-y-0.5",
-            active ? "border-signal ring-2 ring-signal/25" : "border-hairline",
+            "pointer-events-auto flex items-center gap-1.5 whitespace-nowrap rounded-full border bg-paper/95 font-semibold leading-none text-ink shadow-[0_1px_3px_rgba(18,35,63,0.14)] transition-[transform,padding,font-size] hover:-translate-y-0.5",
+            active
+              ? "border-signal px-2.5 py-[5px] text-[11.5px] ring-2 ring-signal/25"
+              : "border-hairline px-2 py-[3px] text-[10px]",
           )}
         >
-          <span className={cn("h-2 w-2 shrink-0 rounded-full", DOT[tone], pulse && "pw-blink")} />
+          <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full", DOT[tone], pulse && "pw-blink")} />
           {children}
         </button>
-        <div className="mx-auto h-2 w-px bg-ink/30" />
+        <div className="mx-auto h-1.5 w-px bg-ink/30" />
       </div>
     </Html>
   );

@@ -112,7 +112,7 @@ function TruckLabel({ truck }: { truck: TruckT }) {
   const text = shipmentFocus || selected ? `TRUCK ${truck.plate} · ${truck.gate ? `via ${truck.gate}` : truck.carrier}` : `${truck.plate} · Queued 18 min`;
   return (
     <Chip3D position={[0, 4.6, 0]} tone={gateHot && !selected ? "amber" : "signal"} active={selected || shipmentFocus} onClick={() => open({ kind: "truck", id: truck.id })}>
-      <span className="font-mono text-[12px]">{text}</span>
+      <span className="font-mono">{text}</span>
     </Chip3D>
   );
 }

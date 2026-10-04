@@ -33,7 +33,7 @@ function CraneLabel({ crane }: { crane: QuayCraneT }) {
   const text = active ? `${crane.id} · ${crane.movesPerHour || 28} moves/h` : `${crane.id} · ${st.reason ?? "Idle"}`;
   return (
     <Chip3D position={[0, 27.5, 15]} tone={paused ? "brick" : active ? "signal" : "amber"} pulse={paused} active={selected} onClick={() => open({ kind: "crane", id: crane.id })}>
-      <span className="font-mono text-[12px]">{text}</span>
+      <span className="font-mono">{text}</span>
     </Chip3D>
   );
 }
