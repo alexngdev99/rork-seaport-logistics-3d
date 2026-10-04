@@ -154,7 +154,64 @@
   animation: pw-stripes 1s linear infinite;
 }
 
+@keyframes pw-drop {
+  0% {
+    opacity: 0;
+    transform: translateY(-46px);
+  }
+  70% {
+    opacity: 1;
+    transform: translateY(1.5px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pw-sway {
+  0%,
+  100% {
+    transform: rotate(-2.4deg);
+  }
+  50% {
+    transform: rotate(2.4deg);
+  }
+}
+
+@keyframes pw-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes pw-drift {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-40px);
+  }
+}
+
+.pw-drop {
+  animation: pw-drop 0.55s cubic-bezier(0.55, 0, 0.35, 1) both;
+}
+.pw-sway {
+  animation: pw-sway 2.6s ease-in-out infinite;
+}
+.pw-spin {
+  animation: pw-spin 0.9s linear infinite;
+}
+.pw-drift {
+  animation: pw-drift 3.4s linear infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .pw-drop,
+  .pw-sway,
+  .pw-spin,
+  .pw-drift,
   .pw-pulse,
   .pw-blink,
   .pw-rise,

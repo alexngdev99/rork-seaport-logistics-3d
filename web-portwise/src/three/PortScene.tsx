@@ -16,6 +16,8 @@ import { District } from "./district/District";
 import { CameraRig } from "./CameraRig";
 import { updateNight } from "./nightLights";
 import { nightFx, nightMode } from "@/state/nightMode";
+import { boot } from "@/state/boot";
+import { SceneReady } from "./SceneReady";
 
 const DAY = {
   bg: new THREE.Color(COLORS.canvas),
@@ -126,6 +128,7 @@ export default function PortScene() {
       dpr={[1, 1.75]}
       camera={{ fov: 30, near: 1, far: 2400, position: [220, 280, 380] }}
       gl={{ antialias: true, powerPreference: "high-performance" }}
+      onCreated={() => boot.mark("engine")}
       onPointerMissed={() => {
         document.body.style.cursor = "";
       }}
@@ -135,6 +138,7 @@ export default function PortScene() {
       <Lights />
       <Suspense fallback={null}>
         <World />
+        <SceneReady />
       </Suspense>
       <CameraRig />
       <AdaptiveDpr pixelated={false} />

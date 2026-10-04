@@ -10,6 +10,7 @@ import { GATE_X, SHIP_Z, berthX } from "@/data/layout";
 import { sceneRegistry } from "@/sim/simStore";
 import type { CameraView } from "@/state/PortProvider";
 import { selKey, usePort } from "@/state/PortProvider";
+import { useBootRevealed } from "@/state/boot";
 
 type V3 = [number, number, number];
 
@@ -80,6 +81,7 @@ export function CameraRig() {
   const { selection, view, homeNonce } = usePort();
   const followKey = useRef<string | undefined>(undefined);
   const key = selKey(selection);
+  const isRevealed = useBootRevealed();
 
   useEffect(() => {
     cameraApi.current = ref.current;
@@ -95,7 +97,8 @@ export function CameraRig() {
 
   useEffect(() => {
     const c = ref.current;
-    if (!c) return;
+    // Hold the wide establishing shot under the boot screen; the fly-in plays as it lifts.
+    if (!c || !isRevealed) return;
     const shot = (selection ? shotFor(selection) : null) ?? VIEWS[view];
     followKey.current = shot.follow;
     let target: V3 = shot.target;
@@ -109,7 +112,7 @@ export function CameraRig() {
     const [tx, ty, tz] = target;
     const [ox, oy, oz] = shot.offset;
     void c.setLookAt(tx + ox, ty + oy, tz + oz, tx, ty, tz, true);
-  }, [key, view, homeNonce, selection]);
+  }, [key, view, homeNonce, selection, isRevealed]);
 
   useFrame(() => {
     const c = ref.current;
