@@ -1,0 +1,164 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Portwise design system – "morning nautical chart". All colors HSL. */
+
+@layer base {
+  :root {
+    --background: 41.5 35.1% 92.7%;
+    --foreground: 217.3 55.6% 15.9%;
+
+    --card: 42.9 100% 98.6%;
+    --card-foreground: 217.3 55.6% 15.9%;
+
+    --popover: 42.9 100% 98.6%;
+    --popover-foreground: 217.3 55.6% 15.9%;
+
+    --primary: 217.3 55.6% 15.9%;
+    --primary-foreground: 42.9 100% 98.6%;
+
+    --secondary: 42.4 32.1% 89.6%;
+    --secondary-foreground: 217.3 55.6% 15.9%;
+
+    --muted: 42.4 32.1% 89.6%;
+    --muted-foreground: 220 8.9% 46.1%;
+
+    --accent: 42.4 32.1% 89.6%;
+    --accent-foreground: 217.3 55.6% 15.9%;
+
+    --destructive: 3 56.2% 50.8%;
+    --destructive-foreground: 42.9 100% 98.6%;
+
+    --border: 41.1 25.3% 85.3%;
+    --input: 41.1 25.3% 85.3%;
+    --ring: 15.9 88.3% 56.5%;
+
+    --radius: 0.875rem;
+
+    --sidebar-background: 42.9 100% 98.6%;
+    --sidebar-foreground: 217.3 55.6% 15.9%;
+    --sidebar-primary: 217.3 55.6% 15.9%;
+    --sidebar-primary-foreground: 42.9 100% 98.6%;
+    --sidebar-accent: 42.4 32.1% 89.6%;
+    --sidebar-accent-foreground: 217.3 55.6% 15.9%;
+    --sidebar-border: 41.1 25.3% 85.3%;
+    --sidebar-ring: 15.9 88.3% 56.5%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    overflow: hidden;
+    font-feature-settings: "ss01", "cv11";
+  }
+
+  :focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+  }
+}
+
+@layer components {
+  .panel {
+    @apply rounded-[14px] border border-hairline bg-paper shadow-panel;
+  }
+  .eyebrow {
+    @apply text-[10.5px] font-semibold uppercase tracking-[0.12em] text-slate;
+  }
+  .tnum {
+    font-variant-numeric: tabular-nums;
+  }
+  .scroll-thin {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--border)) transparent;
+  }
+}
+
+@keyframes pw-pulse-ring {
+  0% {
+    box-shadow: 0 0 0 0 rgba(242, 98, 46, 0.45);
+  }
+  70% {
+    box-shadow: 0 0 0 7px rgba(242, 98, 46, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(242, 98, 46, 0);
+  }
+}
+
+@keyframes pw-blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+@keyframes pw-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pw-stripes {
+  from {
+    background-position: 0 0;
+  }
+  to {
+    background-position: 16px 0;
+  }
+}
+
+.pw-pulse {
+  animation: pw-pulse-ring 1.8s ease-out infinite;
+}
+.pw-blink {
+  animation: pw-blink 1.6s ease-in-out infinite;
+}
+.pw-rise {
+  animation: pw-rise 0.38s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.pw-hatch {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    rgba(18, 35, 63, 0.09) 0 4px,
+    transparent 4px 8px
+  );
+}
+.pw-stripes {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    rgba(255, 255, 255, 0.28) 0 4px,
+    transparent 4px 8px
+  );
+  background-size: 16px 16px;
+  animation: pw-stripes 1s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pw-pulse,
+  .pw-blink,
+  .pw-rise,
+  .pw-stripes {
+    animation: none;
+  }
+}

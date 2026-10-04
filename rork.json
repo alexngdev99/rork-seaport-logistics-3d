@@ -1,0 +1,10 @@
+{
+  "apps": [
+    {
+      "name": "Portwise",
+      "path": "web-portwise",
+      "framework": "web"
+    }
+  ],
+  "$schema": "https://rork.com/schema/rork.json"
+}
