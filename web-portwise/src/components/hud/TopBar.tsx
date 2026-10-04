@@ -130,9 +130,9 @@ export function TopBar() {
         </Popover>
 
         <div className="hidden items-center gap-2.5 pl-1 md:flex">
-          <div className="grid h-9 w-9 place-items-center rounded-full bg-ink text-[12.5px] font-bold text-paper">RT</div>
+          <div className="grid h-9 w-9 place-items-center rounded-full bg-ink text-[12.5px] font-bold text-paper">AN</div>
           <div className="hidden whitespace-nowrap leading-tight min-[1700px]:block">
-            <p className="text-[13px] font-semibold text-ink">Rachel Tan</p>
+            <p className="text-[13px] font-semibold text-ink">Alex Nguyen</p>
             <p className="text-[11.5px] text-slate">{CARRIER_NAME}</p>
           </div>
         </div>
