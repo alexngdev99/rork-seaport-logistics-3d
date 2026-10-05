@@ -122,6 +122,7 @@ This morning's scenario:
 - **24 h berth plan** Gantt chart with a moving now-line.
 - **⌘K command palette** to search vessels, containers, trucks, shipments, blocks, cranes and logistics sites.
 - **Hide panels** mode for a clean view of the whole map.
+- **Ship-type filter** (camera rail, shortcut T): show all ships, or only container ships, tankers or bulk carriers. Hidden ships sink away and the ones you pick pop back up. Each hull type has its own 3D model, and tankers and bulk carriers sail the Strait or lie at anchor.
 - A polished **boot screen** that preloads fonts, the 3D engine, the scene, the shaders and the first frames, so the port is fully warm when it appears.
 
 ---
@@ -272,7 +273,8 @@ bun x tsc -p tsconfig.app.json --noEmit
         │   ├── boot.ts            # Boot stage store
         │   ├── environment.ts     # Sky clock (live / manual / time-lapse), live + demo weather, port impact
         │   ├── nightMode.ts       # Eased night-light blend
-        │   └── hudVisibility.ts   # Hide panels toggle
+        │   ├── hudVisibility.ts   # Hide panels toggle
+        │   └── shipFilter.ts      # Ship-type map filter (all / container / tanker / bulk)
         └── three/
             ├── PortScene.tsx      # <Canvas> and world
             ├── Atmosphere.tsx     # Sun path, sky/fog ramps, weather blend, rain, lightning
@@ -364,6 +366,7 @@ Then the cover fades out, the HUD mounts and the camera fly-in starts. A 30 s sa
 | `PortProvider` | React context (`@nkzw/create-context-hook`) | Current selection, camera focus, route sync |
 | `environment` | Module store + React Query (Open-Meteo) | Sky clock, live/demo weather, port impact |
 | `hudVisibility` | Module store | Hide panels |
+| `shipFilter` | Module store | Ship types shown on the 3D map |
 | `boot` | Module store | Boot progress and reveal |
 
 Module-level stores let both the HUD and the 3D scene read shared state without prop drilling or extra renders.

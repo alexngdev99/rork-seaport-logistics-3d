@@ -6,6 +6,7 @@ import { fullscreen, useIsFullscreen, type FullscreenSupport } from "@/state/ful
 import { cameraApi } from "@/three/CameraRig";
 import { usePort } from "@/state/PortProvider";
 import { SkyWeatherButton } from "./SkyWeather";
+import { ShipTypeFilter } from "./ShipTypeFilter";
 import { hudVisibility, useHudHidden } from "@/state/hudVisibility";
 import { cn } from "@/lib/utils";
 
@@ -153,6 +154,7 @@ export function CameraRail() {
     <div className="pointer-events-auto flex flex-col items-end gap-2">
     <HudToggle />
     <SkyWeatherButton />
+    <ShipTypeFilter />
     <FullscreenToggle />
     <div role="toolbar" aria-label="Camera controls" aria-orientation="vertical" className="panel flex flex-col overflow-hidden [@media(max-height:559px)]:hidden">
       {/* Phones pinch to zoom, so the +/- buttons are tablet/desktop only. */}

@@ -21,7 +21,7 @@ export interface Kinematics extends Truth {
   rot: number;
 }
 
-export type AisRole = "call" | "transit" | "moored";
+export type AisRole = "call" | "transit" | "anchored" | "moored";
 
 export interface AisVesselDef {
   id: string;
@@ -87,9 +87,9 @@ export const AIS_DEFS: AisVesselDef[] = [
     name: tr.name,
     short: tr.name,
     static: AIS_STATIC[tr.id],
-    role: "transit",
+    role: tr.kind === "anchored" ? "anchored" : "transit",
     berthHeading: 270,
-    moving: true,
+    moving: tr.kind === "transit",
     truth: tr.voyage.truth,
     statusChanges: [],
   })),

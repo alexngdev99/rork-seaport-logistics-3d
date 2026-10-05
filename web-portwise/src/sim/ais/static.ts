@@ -1,3 +1,5 @@
+import type { ShipClass } from "@/data/shipClasses";
+
 /** AIS message 5 (static & voyage related data) for each vessel, keyed by vessel id. */
 export interface ShipStaticData {
   mmsi: number;
@@ -10,6 +12,8 @@ export interface ShipStaticData {
   draught: number;
   /** Free text, usually a UN/LOCODE. */
   destination: string;
+  /** Hull type for the map filter; tankers come from ship type 80–89, everything else defaults to container. */
+  cls?: ShipClass;
 }
 
 const dims = (lengthM: number, beamM = 23): ShipStaticData["dimension"] => {
@@ -29,14 +33,28 @@ export const AIS_STATIC: Record<string, ShipStaticData> = {
   "blue-marlin": { mmsi: 563002930, callSign: "9VBM1", shipType: 70, dimension: dims(96, 20), draught: 7.4, destination: "SGSIN" },
   "jakarta-express": { mmsi: 563014110, callSign: "9VHE9", shipType: 70, dimension: dims(90, 18), draught: 6.8, destination: "SGSIN" },
   "asian-dawn": { mmsi: 564381000, callSign: "9V7731", shipType: 70, dimension: dims(114), draught: 8.5, destination: "SGSIN" },
-  "sinar-bintan": { mmsi: 563088210, callSign: "9VTC8", shipType: 70, dimension: dims(72, 14), draught: 4.6, destination: "MYPGU" },
+  "sinar-bintan": { mmsi: 563088210, callSign: "9VTC8", shipType: 70, dimension: dims(72, 14), draught: 4.6, destination: "MYPGU", cls: "bulk" },
   "kota-ria": { mmsi: 533071330, callSign: "9VPL3", shipType: 70, dimension: dims(72, 13), draught: 4.2, destination: "IDBTM" },
   "batam-link": { mmsi: 525002680, callSign: "9VVF6", shipType: 70, dimension: dims(78, 14), draught: 5.0, destination: "MYTPP" },
-  "jurong-08": { mmsi: 563090680, callSign: "9VMT8", shipType: 79, dimension: dims(60, 11), draught: 3.8, destination: "MYPGU" },
-  "straits-03": { mmsi: 563093090, callSign: "9VSH9", shipType: 79, dimension: dims(60, 11), draught: 3.6, destination: "IDJKT" },
-  "ocean-grace": { mmsi: 563004470, callSign: "9VHB2", shipType: 70, dimension: dims(84, 15), draught: 5.6, destination: "SGSIN" },
+  "jurong-08": { mmsi: 563090680, callSign: "9VMT8", shipType: 80, dimension: dims(60, 11), draught: 3.8, destination: "MYPGU" },
+  "straits-03": { mmsi: 563093090, callSign: "9VSH9", shipType: 81, dimension: dims(60, 11), draught: 3.6, destination: "IDJKT" },
+  "ocean-grace": { mmsi: 563004470, callSign: "9VHB2", shipType: 70, dimension: dims(84, 15), draught: 5.6, destination: "SGSIN", cls: "bulk" },
   "johor-pride": { mmsi: 533085050, callSign: "9VTH5", shipType: 70, dimension: dims(66, 12), draught: 4.0, destination: "MYPKG" },
   "pacific-21": { mmsi: 563077210, callSign: "9VPC1", shipType: 70, dimension: dims(72, 13), draught: 4.4, destination: "MYTPP" },
+  "ocean-pearl": { mmsi: 563045520, callSign: "9VOP5", shipType: 80, dimension: dims(138, 24), draught: 12.4, destination: "AEFJR" },
+  "cape-ophir": { mmsi: 477812300, callSign: "VRPQ7", shipType: 70, dimension: dims(132, 24), draught: 11.8, destination: "CNNGB", cls: "bulk" },
+  "eagle-tuas": { mmsi: 563067780, callSign: "9VET4", shipType: 80, dimension: dims(132, 24), draught: 11.2, destination: "SGSIN" },
+  "sentosa-glory": { mmsi: 563071190, callSign: "9VSG2", shipType: 81, dimension: dims(102, 18), draught: 8.6, destination: "SGSIN" },
+  "cape-keppel": { mmsi: 538009140, callSign: "V7CK3", shipType: 70, dimension: dims(132, 24), draught: 12.1, destination: "SGSIN", cls: "bulk" },
+  "golden-harvest": { mmsi: 636021450, callSign: "D5GH8", shipType: 70, dimension: dims(114, 21), draught: 10.4, destination: "SGSIN", cls: "bulk" },
+};
+
+/** Hull type of a ship, from its AIS static data. */
+export const shipClassOf = (id: string): ShipClass => {
+  const s = AIS_STATIC[id];
+  if (!s) return "container";
+  if (s.cls) return s.cls;
+  return s.shipType >= 80 && s.shipType <= 89 ? "tanker" : "container";
 };
 
 export const SHIP_TYPE_LABEL = (code: number): string => (code >= 70 && code <= 79 ? "Cargo" : code >= 80 && code <= 89 ? "Tanker" : code === 52 ? "Tug" : "Other");

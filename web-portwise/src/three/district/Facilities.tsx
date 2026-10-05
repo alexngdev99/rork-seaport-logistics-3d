@@ -13,6 +13,7 @@ import type { Inst } from "./kit";
 import { usePort } from "@/state/PortProvider";
 import { RailIcd } from "./RailIcd";
 import { SCAN } from "@/sim/logistics";
+import { ShipGate } from "../ShipGate";
 
 const KIND_TONE: Record<string, ChipTone> = {
   rail: "harbor",
@@ -367,6 +368,7 @@ const FuelTerminal = memo(function FuelTerminal() {
         <Part key={x} position={[x, 3, 38]} scale={[0.5, 5, 0.5]} color={COLORS.amber} />
       ))}
       <group position={[-300, 0, 45]}>
+        <ShipGate cls="tanker">
         <Part position={[0, -0.4, 0]} scale={[52, 3.2, 8.6]} color="#8E2F2A" />
         <Part position={[0, 1.3, 0]} scale={[51, 0.3, 8.2]} color="#B7B0A2" />
         <Part position={[-21, 4.2, 0]} scale={[7, 5.6, 7.6]} color="#F6F3EC" />
@@ -378,6 +380,7 @@ const FuelTerminal = memo(function FuelTerminal() {
         <Text font={FONT_URL} fontSize={1.3} color="#F6F3EC" position={[6, 0.4, -4.35]} rotation={[0, Math.PI, 0]} anchorX="center">
           STRAITS SPIRIT
         </Text>
+        </ShipGate>
       </group>
       <Part position={[-272, 5, -66]} scale={[14, 0.5, 8]} color="#F6F3EC" />
       {[-6, 6].map((dx) => [-3.5, 3.5].map((dz) => <Part key={`${dx}${dz}`} position={[-272 + dx, 2.5, -66 + dz]} scale={[0.35, 5, 0.35]} color="#C9C2B3" />))}

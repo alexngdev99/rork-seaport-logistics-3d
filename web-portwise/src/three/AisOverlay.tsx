@@ -8,6 +8,8 @@ import { aisFix, aisReceived, newFix } from "@/sim/ais/tracker";
 import { DEG, KN, M_PER_UNIT } from "@/sim/ais/geo";
 import { nightFx } from "@/state/nightMode";
 import { usePort } from "@/state/PortProvider";
+import { useShowsClass } from "@/state/shipFilter";
+import { shipClassOf } from "@/sim/ais/static";
 
 const MAX_FIXES = 160;
 const HISTORY_SEC = 900;
@@ -23,7 +25,8 @@ const dummy = new THREE.Object3D();
 
 function AisTrack({ id }: { id: string }) {
   const { selection, view } = usePort();
-  const visible = view === "overview" || view === "vessels" || (selection?.kind === "vessel" && selection.id === id);
+  const showsClass = useShowsClass(shipClassOf(id));
+  const visible = showsClass && (view === "overview" || view === "vessels" || (selection?.kind === "vessel" && selection.id === id));
   const selected = selection?.kind === "vessel" && selection.id === id;
 
   const parts = useMemo(() => {

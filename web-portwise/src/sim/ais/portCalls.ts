@@ -3,6 +3,8 @@ import { ARRIVAL_SECONDS } from "../constants";
 import { KN, M_PER_UNIT } from "./geo";
 import { buildVoyage } from "./voyage";
 import type { Truth, Voyage, VoyagePhase } from "./voyage";
+import { shipClassOf } from "./static";
+import type { ShipClass } from "@/data/shipClasses";
 
 /*
  * Port calls for the simulated morning, scripted the way a VTS sees them:
@@ -155,7 +157,18 @@ export const PORT_EVENTS: PortEvent[] = EVENTS.sort((a, b) => a.t - b.t);
 /* Singapore Strait traffic passing the terminal (TSS)                 */
 /* ------------------------------------------------------------------ */
 
+/** A ship off the terminal that never calls at it: Strait transit traffic or a ship swinging at anchor. */
 export interface Transit {
+  id: string;
+  name: string;
+  kind: "transit" | "anchored";
+  cls: ShipClass;
+  length: number;
+  hull: string;
+  voyage: Voyage;
+}
+
+interface TransitSpec {
   id: string;
   name: string;
   dir: "W" | "E";
@@ -164,7 +177,16 @@ export interface Transit {
   passT: number;
   length: number;
   hull: string;
-  voyage: Voyage;
+}
+
+interface AnchoredSpec {
+  id: string;
+  name: string;
+  at: [number, number];
+  /** Heading she lies to her anchor (into the tidal stream). */
+  swing: number;
+  length: number;
+  hull: string;
 }
 
 const STRAIT_EAST = 1150;
@@ -187,7 +209,7 @@ function transitVoyage(dir: "W" | "E", speedKn: number, passT: number): Voyage {
   ]);
 }
 
-const TRANSIT_SPECS: Array<Omit<Transit, "voyage">> = [
+const TRANSIT_SPECS: TransitSpec[] = [
   { id: "kota-ria", name: "KOTA RIA", dir: "W", kn: 9.0, passT: -2600, length: 24, hull: "#2F5D4E" },
   { id: "batam-link", name: "BATAM LINK", dir: "E", kn: 8.6, passT: -1700, length: 26, hull: "#1E3A66" },
   { id: "jurong-08", name: "JURONG 08", dir: "E", kn: 7.5, passT: -1000, length: 20, hull: "#8A3B34" },
@@ -196,9 +218,27 @@ const TRANSIT_SPECS: Array<Omit<Transit, "voyage">> = [
   { id: "ocean-grace", name: "OCEAN GRACE", dir: "W", kn: 10.2, passT: 1750, length: 28, hull: "#B5463A" },
   { id: "johor-pride", name: "JOHOR PRIDE", dir: "W", kn: 8.8, passT: 2500, length: 22, hull: "#2C6FB0" },
   { id: "pacific-21", name: "PACIFIC 21", dir: "E", kn: 8.2, passT: 2950, length: 24, hull: "#2F5D4E" },
+  { id: "cape-ophir", name: "CAPE OPHIR", dir: "E", kn: 10.4, passT: -420, length: 44, hull: "#1E3A66" },
+  { id: "ocean-pearl", name: "OCEAN PEARL", dir: "W", kn: 11.2, passT: 180, length: 46, hull: "#3B4A5C" },
 ];
 
-export const TRANSITS: Transit[] = TRANSIT_SPECS.map((s) => ({ ...s, voyage: transitVoyage(s.dir, s.kn, s.passT) }));
+/** Tankers and bulk carriers lying at the anchorage south of the TSS, clear of both lanes and the port-call tracks. */
+const ANCHORED_SPECS: AnchoredSpec[] = [
+  { id: "eagle-tuas", name: "EAGLE TUAS", at: [-330, 238], swing: 250, length: 44, hull: "#8A3B34" },
+  { id: "cape-keppel", name: "CAPE KEPPEL", at: [90, 242], swing: 262, length: 44, hull: "#2F5D4E" },
+  { id: "golden-harvest", name: "GOLDEN HARVEST", at: [275, 250], swing: 258, length: 38, hull: "#B5463A" },
+  { id: "sentosa-glory", name: "SENTOSA GLORY", at: [790, 222], swing: 268, length: 34, hull: "#2B3442" },
+];
+
+export const TRANSITS: Transit[] = [
+  ...TRANSIT_SPECS.map<Transit>(({ dir, kn: speed, passT, ...s }) => ({ ...s, kind: "transit", cls: shipClassOf(s.id), voyage: transitVoyage(dir, speed, passT) })),
+  ...ANCHORED_SPECS.map<Transit>(({ at, swing, ...s }) => ({
+    ...s,
+    kind: "anchored",
+    cls: shipClassOf(s.id),
+    voyage: buildVoyage({ x: at[0], z: at[1], heading: swing }, -1e6, [{ kind: "anchor", until: Infinity, swing }]),
+  })),
+];
 
 /** Ships further out than this are beyond the scene's fog and hidden. */
 export const VISIBLE_X = 960;

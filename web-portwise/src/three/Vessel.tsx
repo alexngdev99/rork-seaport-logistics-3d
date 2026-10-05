@@ -10,7 +10,11 @@ import { aisFix, newFix } from "@/sim/ais/tracker";
 import { TRANSITS, VISIBLE_X, portCall } from "@/sim/ais/portCalls";
 import type { Transit } from "@/sim/ais/portCalls";
 import { bearingToRotY } from "@/sim/ais/geo";
-import { Part, Selectable, mat, unitBox, unitCyl, useHighlight } from "./parts";
+import { Beam, Part, Selectable, mat, unitBox, unitCyl, useHighlight } from "./parts";
+import { ShipGate } from "./ShipGate";
+import type { ShipClass } from "@/data/shipClasses";
+import { shipClassMeta } from "@/data/shipClasses";
+import { useShipFilter, useShowsClass } from "@/state/shipFilter";
 import { Chip3D } from "./Chip3D";
 import type { ChipTone } from "./Chip3D";
 import { FONT_URL } from "./Terrain";
@@ -72,16 +76,16 @@ interface ShipModelProps {
   hull: string;
   name: string;
   seed: number;
-  /** Returns fraction (0..1) of deck slots to show. */
-  fill: () => number;
+  /** Hull type; decides the deck (container stacks, tanker pipe deck or bulk hatches with cranes). */
+  cls?: ShipClass;
+  /** Container ships only: fraction (0..1) of deck slots to show. */
+  fill?: () => number;
 }
 
-/** Low-poly container ship facing +x. Origin is at the waterline. */
-export const ShipModel = memo(function ShipModel({ length, hull, name, seed, fill }: ShipModelProps) {
-  const hl = useHighlight();
-  const hullGeo = useMemo(() => hullGeometry(length, HULL_H), [length]);
-  const bootGeo = useMemo(() => hullGeometry(length, 2.1), [length]);
-  const sheerGeo = useMemo(() => hullGeometry(length, 0.35), [length]);
+const FULL = (): number => 1;
+
+/** Container deck: instanced boxes that empty and fill with the cargo counts. */
+const ContainerDeck = memo(function ContainerDeck({ length, seed, fill }: { length: number; seed: number; fill: () => number }) {
   const slots = useMemo(() => deckSlots(length, seed), [length, seed]);
   const inst = useRef<THREE.InstancedMesh>(null);
   const lastCount = useRef<number>(-1);
@@ -111,6 +115,83 @@ export const ShipModel = memo(function ShipModel({ length, hull, name, seed, fil
     }
   });
 
+  return (
+    <>
+      <mesh geometry={unitBox} material={mat("#5B6470")} position={[0.6, DECK_Y + 0.05, 0]} scale={[length - 9, 0.1, BEAM - 0.6]} receiveShadow />
+      <instancedMesh ref={inst} args={[undefined, undefined, slots.length]} geometry={unitBox} castShadow receiveShadow>
+        <meshStandardMaterial roughness={0.8} />
+      </instancedMesh>
+    </>
+  );
+});
+
+/** Tanker deck: green deck, fore-aft pipe rack and catwalk, midship manifold with a hose crane, tank hatches. */
+const TankerDeck = memo(function TankerDeck({ length }: { length: number }) {
+  const run = length - 15;
+  const cx = 0.9;
+  const hatches = useMemo(() => {
+    const out: number[] = [];
+    const n = Math.max(3, Math.floor(run / 6));
+    for (let i = 0; i < n; i++) out.push(cx - run / 2 + (i + 0.5) * (run / n));
+    return out;
+  }, [run]);
+  return (
+    <group>
+      <mesh geometry={unitBox} material={mat("#5F7F63", { rough: 0.9 })} position={[0.6, DECK_Y + 0.05, 0]} scale={[length - 9, 0.12, BEAM - 0.6]} receiveShadow />
+      <Part position={[cx, DECK_Y + 0.55, 0]} scale={[run, 0.5, 1.6]} color="#D9D3C6" />
+      <Part position={[cx, DECK_Y + 1.25, 0]} scale={[run + 1, 0.14, 1]} color="#F4F1EA" />
+      {hatches.map((x) => (
+        <group key={x}>
+          <Part position={[x, DECK_Y + 0.45, 2.3]} scale={[0.9, 0.7, 0.9]} color="#F4F1EA" cylinder />
+          <Part position={[x, DECK_Y + 0.45, -2.3]} scale={[0.9, 0.7, 0.9]} color="#F4F1EA" cylinder />
+        </group>
+      ))}
+      <Part position={[cx, DECK_Y + 0.9, 0]} scale={[2.4, 1.4, BEAM - 1.4]} color={COLORS.brick} />
+      <Part position={[cx + 1.6, DECK_Y + 2.4, -2.4]} scale={[0.35, 4.2, 0.35]} color="#F4F1EA" cylinder />
+      <Beam from={[cx + 1.6, DECK_Y + 4.3, -2.4]} to={[cx - 2.4, DECK_Y + 3.4, 1.8]} size={0.3} color="#F4F1EA" />
+    </group>
+  );
+});
+
+/** Bulk carrier deck: raised hatch covers with amber deck cranes between them. */
+const BulkDeck = memo(function BulkDeck({ length }: { length: number }) {
+  const layout = useMemo(() => {
+    const run = length - 16;
+    const n = Math.max(3, Math.min(7, Math.floor(run / 5.6)));
+    const pitch = run / n;
+    const start = 1.4 - run / 2;
+    const hatches = Array.from({ length: n }, (_, i) => start + (i + 0.5) * pitch);
+    // Gear sits on the centre line between hatch pairs.
+    const cranes = Array.from({ length: n - 1 }, (_, i) => start + (i + 1) * pitch).filter((_, i) => i % 2 === 0);
+    return { hatches, cranes, size: pitch - 1.1 };
+  }, [length]);
+  return (
+    <group>
+      <mesh geometry={unitBox} material={mat("#6B5A4E", { rough: 0.9 })} position={[0.6, DECK_Y + 0.05, 0]} scale={[length - 9, 0.12, BEAM - 0.6]} receiveShadow />
+      {layout.hatches.map((x) => (
+        <group key={x}>
+          <Part position={[x, DECK_Y + 0.55, 0]} scale={[layout.size, 1, BEAM - 1.5]} color="#BDB5A4" />
+          <Part position={[x, DECK_Y + 1.2, 0]} scale={[layout.size - 0.2, 0.32, BEAM - 1.7]} color="#8E2F2A" />
+          <mesh geometry={unitBox} material={mat("#7A2924")} position={[x, DECK_Y + 1.37, 0]} scale={[layout.size - 0.25, 0.04, 0.18]} />
+        </group>
+      ))}
+      {layout.cranes.map((x, i) => (
+        <group key={x} position={[x, DECK_Y, 0]}>
+          <Part position={[0, 2.4, 0]} scale={[1, 4.8, 1]} color={COLORS.amber} cylinder />
+          <Part position={[0, 4.9, 0]} scale={[1.5, 0.9, 1.5]} color={COLORS.amber} />
+          <Beam from={[0, 4.4, 0]} to={[i % 2 ? -4.2 : 4.2, 6.6, i % 2 ? 1.4 : -1.4]} size={0.32} color={COLORS.amber} />
+        </group>
+      ))}
+    </group>
+  );
+});
+
+/** Low-poly cargo ship facing +x (container ship, tanker or bulk carrier). Origin is at the waterline. */
+export const ShipModel = memo(function ShipModel({ length, hull, name, seed, cls = "container", fill = FULL }: ShipModelProps) {
+  const hl = useHighlight();
+  const hullGeo = useMemo(() => hullGeometry(length, HULL_H), [length]);
+  const bootGeo = useMemo(() => hullGeometry(length, 2.1), [length]);
+  const sheerGeo = useMemo(() => hullGeometry(length, 0.35), [length]);
   const sx = -length / 2;
   return (
     <group>
@@ -119,10 +200,7 @@ export const ShipModel = memo(function ShipModel({ length, hull, name, seed, fil
       </mesh>
       <mesh geometry={bootGeo} material={mat("#B23A33", { rough: 0.7 })} rotation={[-Math.PI / 2, 0, 0]} position={[0, -DRAFT - 0.05, 0]} scale={[1.004, 1.012, 1]} />
       <mesh geometry={sheerGeo} material={mat("#F4F1EA")} rotation={[-Math.PI / 2, 0, 0]} position={[0, DECK_Y - 0.36, 0]} scale={[1.003, 1.01, 1]} />
-      <mesh geometry={unitBox} material={mat("#5B6470")} position={[0.6, DECK_Y + 0.05, 0]} scale={[length - 9, 0.1, BEAM - 0.6]} receiveShadow />
-      <instancedMesh ref={inst} args={[undefined, undefined, slots.length]} geometry={unitBox} castShadow receiveShadow>
-        <meshStandardMaterial roughness={0.8} />
-      </instancedMesh>
+      {cls === "tanker" ? <TankerDeck length={length} /> : cls === "bulk" ? <BulkDeck length={length} /> : <ContainerDeck length={length} seed={seed} fill={fill} />}
       {/* Accommodation block */}
       <Part position={[sx + 3.4, DECK_Y + 3.3, 0]} scale={[4, 6.6, 6.4]} color="#F4F1EA" />
       {[1.6, 3.4, 5.2].map((y) => (
@@ -130,7 +208,7 @@ export const ShipModel = memo(function ShipModel({ length, hull, name, seed, fil
       ))}
       <Part position={[sx + 3.6, DECK_Y + 6.9, 0]} scale={[3.4, 0.7, 8.6]} color="#F4F1EA" />
       <mesh geometry={unitBox} material={litMat("#24344F", LIGHT.window, 1.6)} position={[sx + 3.6, DECK_Y + 6.9, 0]} scale={[3.44, 0.32, 8.64]} />
-      <ShipLights length={length} />
+      <ShipLights length={length} floods={cls === "container"} />
       <Part position={[sx + 1.0, DECK_Y + 5.6, 0]} scale={[1.4, 3.2, 1.8]} color={hull} />
       <mesh geometry={unitBox} material={mat(COLORS.signal)} position={[sx + 1.0, DECK_Y + 6.4, 0]} scale={[1.44, 0.5, 1.84]} />
       <Part position={[length / 2 - 3.2, DECK_Y + 2.5, 0]} scale={[0.25, 5, 0.25]} color="#F4F1EA" cylinder />
@@ -154,13 +232,14 @@ export const ShipModel = memo(function ShipModel({ length, hull, name, seed, fil
 });
 
 /** Navigation lights (masthead, port red, starboard green, stern), deck floods and their glow on the water. */
-const ShipLights = memo(function ShipLights({ length }: { length: number }) {
+const ShipLights = memo(function ShipLights({ length, floods: hasFloods = true }: { length: number; floods?: boolean }) {
   const sx = -length / 2;
   const floods = useMemo(() => {
     const out: number[] = [];
+    if (!hasFloods) return out;
     for (let x = sx + 12; x < length / 2 - 6; x += 14) out.push(x);
     return out;
-  }, [length, sx]);
+  }, [length, sx, hasFloods]);
   return (
     <group>
       <Glow position={[length / 2 - 3.2, DECK_Y + 5.3, 0]} color={LIGHT.white} size={1.8} />
@@ -291,10 +370,12 @@ export function BerthedVessel({ vessel }: { vessel: Vessel }) {
   });
   return (
     <group ref={group} position={[berthX(vessel.berth), WATER_Y, SHIP_Z]}>
-      <Selectable sel={{ kind: "vessel", id: vessel.id }}>
-        <ShipModel length={vessel.length} hull={vessel.hull} name={vessel.short} seed={vessel.berth * 31} fill={fill} />
-      </Selectable>
-      <VesselLabel vessel={vessel} y={DECK_Y + 9.5} />
+      <ShipGate cls="container">
+        <Selectable sel={{ kind: "vessel", id: vessel.id }}>
+          <ShipModel length={vessel.length} hull={vessel.hull} name={vessel.short} seed={vessel.berth * 31} fill={fill} />
+        </Selectable>
+        <VesselLabel vessel={vessel} y={DECK_Y + 9.5} />
+      </ShipGate>
     </group>
   );
 }
@@ -373,38 +454,49 @@ export function PortCallVessel({ vessel }: { vessel: Vessel }) {
 
   return (
     <group ref={group}>
-      <Wake length={vessel.length} strength={wake} />
-      <Selectable sel={{ kind: "vessel", id: vessel.id }}>
-        <ShipModel length={vessel.length} hull={vessel.hull} name={vessel.short} seed={vessel.berth * 31 + vessel.length} fill={fill} />
-      </Selectable>
-      <group ref={tugA} visible={false}>
-        <Tug />
-      </group>
-      <group ref={tugB} visible={false}>
-        <Tug color="#1E3A66" />
-      </group>
-      <VesselLabel vessel={vessel} y={DECK_Y + 9.5} />
+      <ShipGate cls="container">
+        <Wake length={vessel.length} strength={wake} />
+        <Selectable sel={{ kind: "vessel", id: vessel.id }}>
+          <ShipModel length={vessel.length} hull={vessel.hull} name={vessel.short} seed={vessel.berth * 31 + vessel.length} fill={fill} />
+        </Selectable>
+        <group ref={tugA} visible={false}>
+          <Tug />
+        </group>
+        <group ref={tugB} visible={false}>
+          <Tug color="#1E3A66" />
+        </group>
+        <VesselLabel vessel={vessel} y={DECK_Y + 9.5} />
+      </ShipGate>
     </group>
   );
 }
 
-function TransitLabel({ name, id }: { name: string; id: string }) {
+/**
+ * Label over Strait and anchorage traffic: on the Vessels page, and on the Overview while the ship-type
+ * filter is narrowed (so the ships you asked for are easy to find).
+ */
+function TransitLabel({ tr }: { tr: Transit }) {
   useSimTick();
   const { view } = usePort();
+  const filter = useShipFilter();
   const fix = useMemo(newFix, []);
-  if (view !== "vessels") return null;
-  const f = aisFix(id, simT(), fix);
-  if (Math.abs(f.x) > 360) return null;
+  const isFiltered = filter !== "all";
+  if (!(view === "vessels" || (isFiltered && view === "overview"))) return null;
+  const f = aisFix(tr.id, simT(), fix);
+  if (Math.abs(f.x) > (isFiltered ? 820 : 360)) return null;
+  const meta = shipClassMeta(tr.cls);
+  const motion = tr.kind === "anchored" ? "At anchor" : `${fmtKn(f.sog)} ${f.cog > 180 ? "← westbound" : "→ eastbound"}`;
   return (
-    <Chip3D position={[0, DECK_Y + 8, 0]} tone="ink">
+    <Chip3D position={[0, DECK_Y + (tr.cls === "bulk" ? 10 : 8), 0]} tone={tr.cls === "container" ? "ink" : meta.tone}>
       <span className="font-mono text-slate">
-        {name} · {fmtKn(f.sog)} {f.cog > 180 ? "← westbound" : "→ eastbound"}
+        {tr.name} · {tr.cls === "container" ? "" : `${meta.one} · `}
+        {motion}
       </span>
     </Chip3D>
   );
 }
 
-/** A ship transiting the Singapore Strait past the terminal, driven by its AIS reports. */
+/** A ship transiting the Singapore Strait (or swinging at anchor) off the terminal, driven by its AIS reports. */
 function TransitShip({ tr }: { tr: Transit }) {
   const ref = useRef<THREE.Group>(null);
   const wake = useRef<number>(0);
@@ -427,9 +519,11 @@ function TransitShip({ tr }: { tr: Transit }) {
   });
   return (
     <group ref={ref} visible={false}>
-      <Wake length={tr.length} strength={wake} />
-      <ShipModel length={tr.length} hull={tr.hull} name={tr.name} seed={tr.length * 13} fill={fill} />
-      <TransitLabel name={tr.name} id={tr.id} />
+      <ShipGate cls={tr.cls}>
+        <Wake length={tr.length} strength={wake} />
+        <ShipModel length={tr.length} hull={tr.hull} name={tr.name} seed={tr.length * 13} cls={tr.cls} fill={fill} />
+        <TransitLabel tr={tr} />
+      </ShipGate>
     </group>
   );
 }
