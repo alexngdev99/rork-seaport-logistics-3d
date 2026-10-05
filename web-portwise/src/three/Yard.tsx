@@ -8,6 +8,7 @@ import { YARD_BLOCKS, blockById } from "@/data/port";
 import { BLOCK_HALF_X, BLOCK_HALF_Z, COLORS, CONTAINER_COLORS } from "@/data/layout";
 import { selKey, usePort } from "@/state/PortProvider";
 import { sceneRegistry, simT } from "@/sim/simStore";
+import { haptic } from "@/lib/haptics";
 import { Part, Selectable, mat, unitBox } from "./parts";
 import { Chip3D } from "./Chip3D";
 import type { ChipTone } from "./Chip3D";
@@ -63,7 +64,9 @@ export function YardContainers() {
     e.stopPropagation();
     if (e.delta > 6 || e.instanceId === undefined) return;
     const c = CONTAINERS[e.instanceId];
-    if (c) open({ kind: "container", id: c.id });
+    if (!c) return;
+    haptic("selection");
+    open({ kind: "container", id: c.id });
   };
 
   const selected = selection?.kind === "container" ? containerById(selection.id) : undefined;

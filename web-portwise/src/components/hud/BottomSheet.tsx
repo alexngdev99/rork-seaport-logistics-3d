@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerEvent, ReactNode, WheelEvent as ReactWheelEvent } from "react";
 import { cn } from "@/lib/utils";
+import { haptic } from "@/lib/haptics";
 import { hudInset } from "@/state/hudInset";
 import { sheet, useSheetSnap } from "@/state/sheet";
 import type { SheetSnap } from "@/state/sheet";
@@ -24,7 +25,21 @@ interface DragState {
   lastT: number;
   v: number;
   moved: boolean;
+  startSnap: SheetSnap;
+  /** Detent the finger is currently nearest to, for crossing ticks while dragging. */
+  near: SheetSnap;
+  /** Whether the sheet is currently stretched past an outer detent. */
+  isStretched: boolean;
 }
+
+const nearestSnap = (vis: number, h: Heights): SheetSnap => SNAPS.reduce((best, s) => (Math.abs(h[s] - vis) < Math.abs(h[best] - vis) ? s : best), "peek" as SheetSnap);
+
+/** Detent changes by tap / keyboard: a light tick, slightly firmer when the sheet opens fully. */
+const setSnapWithHaptic = (next: SheetSnap): void => {
+  if (next === sheet.get()) return;
+  haptic(next === "full" ? "medium" : "light");
+  sheet.set(next);
+};
 
 /**
  * Phone / tablet HUD container: a draggable bottom sheet with peek, half and full detents
@@ -80,7 +95,8 @@ export function BottomSheet({ header, headerHeight, children, hidden }: { header
   }, []);
 
   const begin = useCallback((y: number) => {
-    dragRef.current = { startY: y, startVisible: heightsRef.current[sheet.get()], lastY: y, lastT: performance.now(), v: 0, moved: false };
+    const s = sheet.get();
+    dragRef.current = { startY: y, startVisible: heightsRef.current[s], lastY: y, lastT: performance.now(), v: 0, moved: false, startSnap: s, near: s, isStretched: false };
   }, []);
 
   const move = useCallback(
@@ -90,6 +106,13 @@ export function BottomSheet({ header, headerHeight, children, hidden }: { header
       const h = heightsRef.current;
       if (Math.abs(y - d.startY) > 4) d.moved = true;
       let vis = d.startVisible - (y - d.startY);
+      // Haptics while dragging: a tick when passing a detent, a firmer bump when hitting the end stops.
+      const near = nearestSnap(vis, h);
+      const isStretched = vis > h.full + 6 || vis < h.peek - 6;
+      if (isStretched && !d.isStretched) haptic("rigid");
+      else if (d.moved && near !== d.near && !isStretched) haptic("selection");
+      d.near = near;
+      d.isStretched = isStretched;
       // Rubber-band past the outer detents.
       if (vis > h.full) vis = h.full + (vis - h.full) * 0.2;
       if (vis < h.peek) vis = h.peek - (h.peek - vis) * 0.35;
@@ -111,7 +134,9 @@ export function BottomSheet({ header, headerHeight, children, hidden }: { header
     const vis = d.startVisible - (d.lastY - d.startY);
     // Project the release velocity forward so a quick flick jumps a detent.
     const projected = vis - d.v * 220;
-    const target = SNAPS.reduce((best, s) => (Math.abs(h[s] - projected) < Math.abs(h[best] - projected) ? s : best), "peek" as SheetSnap);
+    const target = nearestSnap(projected, h);
+    // Settling into a new detent gets a light "click" (also the moment iOS allows a tick: the release gesture).
+    if (d.moved && target !== d.startSnap) haptic(target === "full" ? "medium" : "light");
     const el = sheetRef.current;
     if (el) {
       el.style.transition = EASE;
@@ -192,19 +217,19 @@ export function BottomSheet({ header, headerHeight, children, hidden }: { header
     if (!tappedRef.current) return;
     tappedRef.current = false;
     const s = sheet.get();
-    sheet.set(s === "peek" ? "half" : s === "half" ? "full" : "peek");
+    setSnapWithHaptic(s === "peek" ? "half" : s === "half" ? "full" : "peek");
   };
   const onHandleKey = (e: ReactKeyboardEvent<HTMLButtonElement>) => {
     const i = SNAPS.indexOf(sheet.get());
     if (e.key === "ArrowUp") {
       e.preventDefault();
-      sheet.set(SNAPS[Math.min(2, i + 1)]);
+      setSnapWithHaptic(SNAPS[Math.min(2, i + 1)]);
     } else if (e.key === "ArrowDown") {
       e.preventDefault();
-      sheet.set(SNAPS[Math.max(0, i - 1)]);
+      setSnapWithHaptic(SNAPS[Math.max(0, i - 1)]);
     } else if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
-      sheet.set(SNAPS[(i + 1) % 3]);
+      setSnapWithHaptic(SNAPS[(i + 1) % 3]);
     }
   };
   const onWheel = (e: ReactWheelEvent<HTMLDivElement>) => {
@@ -236,6 +261,7 @@ export function BottomSheet({ header, headerHeight, children, hidden }: { header
             onPointerCancel={onHandleUp}
             onClick={onHandleClick}
             onKeyDown={onHandleKey}
+            data-haptic="off"
             aria-label={snap === "full" ? "Collapse panels" : "Expand panels"}
             aria-expanded={snap !== "peek"}
             className="flex w-full cursor-grab touch-none items-center justify-center active:cursor-grabbing"

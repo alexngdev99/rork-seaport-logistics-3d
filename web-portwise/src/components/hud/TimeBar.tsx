@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { PointerEvent as ReactPointerEvent, ReactNode } from "react";
 import { FastForward, Pause, Play, Radio, Rewind, StepBack, StepForward } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { haptic } from "@/lib/haptics";
 import { MIN_T, SIM_START_SEC, TIMELINE_EVENTS, clockSnapshot, fmtClock, fmtDuration, timeControl, useClock } from "@/sim/simStore";
 import type { ClockSnapshot } from "@/sim/simStore";
 import { usePort } from "@/state/PortProvider";
@@ -81,8 +82,11 @@ function Scrubber({ compact = false }: { compact?: boolean }) {
   };
 
   const scrubTo = (clientX: number) => {
-    const edge = clockSnapshot().liveT;
-    timeControl.seek(Math.min(tAt(clientX).t, edge - 1));
+    const s = clockSnapshot();
+    const next = Math.min(tAt(clientX).t, s.liveT - 1);
+    // Detent-like tick whenever the playhead passes an event marker while scrubbing.
+    if (drag.current && TIMELINE_EVENTS.some((ev) => ev.t <= s.liveT && (ev.t - s.t) * (ev.t - next) < 0)) haptic("selection");
+    timeControl.seek(next);
   };
 
   const onDown = (e: ReactPointerEvent<HTMLDivElement>) => {
@@ -90,6 +94,7 @@ function Scrubber({ compact = false }: { compact?: boolean }) {
     e.currentTarget.setPointerCapture(e.pointerId);
     const s = clockSnapshot();
     drag.current = { resume: s.live || s.rate !== 0 };
+    haptic("light");
     timeControl.pause();
     scrubTo(e.clientX);
   };
@@ -102,8 +107,10 @@ function Scrubber({ compact = false }: { compact?: boolean }) {
     const { resume } = drag.current;
     drag.current = null;
     const { t } = tAt(e.clientX);
-    if (t >= clockSnapshot().liveT - 3) timeControl.goLive();
-    else if (resume) timeControl.play();
+    if (t >= clockSnapshot().liveT - 3) {
+      haptic("success");
+      timeControl.goLive();
+    } else if (resume) timeControl.play();
   };
 
   const ticks: number[] = [];
@@ -217,6 +224,7 @@ function PlayButton({ playing }: { playing: boolean }) {
     <button
       type="button"
       onClick={() => timeControl.toggle()}
+      data-haptic="medium"
       aria-label={playing ? "Pause (Space)" : "Play (Space)"}
       title={playing ? "Pause (Space)" : "Play (Space)"}
       className="mx-1 grid h-11 w-11 shrink-0 place-items-center rounded-full bg-ink text-paper shadow-panel transition-[transform,background-color] hover:bg-ink/90 active:scale-90"
@@ -249,6 +257,7 @@ function LiveState({ snap, short }: { snap: ClockSnapshot; short?: boolean }) {
     <button
       type="button"
       onClick={() => timeControl.goLive()}
+      data-haptic="success"
       title="Jump to live (L)"
       aria-label={`Go live, ${fmtDuration(behind)} behind`}
       className="flex h-10 shrink-0 items-center gap-2 rounded-full bg-signal px-3.5 text-[12.5px] font-bold text-white shadow-panel transition-transform hover:brightness-105 active:scale-95 lg:h-9 lg:px-3"

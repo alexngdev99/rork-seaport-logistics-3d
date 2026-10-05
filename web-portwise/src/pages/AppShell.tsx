@@ -7,6 +7,7 @@ import { TimeBar, TimeKeys } from "@/components/hud/TimeBar";
 import { useIsCompact } from "@/hooks/useMediaQuery";
 import { usePort } from "@/state/PortProvider";
 import { useBootRevealed } from "@/state/boot";
+import { installTapHaptics } from "@/lib/haptics";
 
 const PortScene = lazy(() => import("@/three/PortScene"));
 
@@ -16,6 +17,8 @@ export default function AppShell() {
   const { closeOverride } = usePort();
   const isRevealed = useBootRevealed();
   const isCompact = useIsCompact();
+
+  useEffect(() => installTapHaptics(), []);
 
   useEffect(() => {
     closeOverride();

@@ -5,6 +5,7 @@ import type { ThreeEvent } from "@react-three/fiber";
 import type { Selection } from "@/data/types";
 import { selKey, usePort } from "@/state/PortProvider";
 import { COLORS } from "@/data/layout";
+import { haptic } from "@/lib/haptics";
 
 /** 0 = none, 1 = hovered, 2 = selected – inherited by every Part inside a Selectable. */
 const HighlightCtx = createContext<number>(0);
@@ -102,6 +103,7 @@ export function Selectable({ sel, children }: SelectableProps) {
   const onClick = (e: ThreeEvent<MouseEvent>) => {
     e.stopPropagation();
     if (e.delta > 6) return;
+    haptic("selection");
     open(sel);
   };
 

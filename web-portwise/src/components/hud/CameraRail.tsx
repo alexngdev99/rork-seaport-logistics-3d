@@ -30,6 +30,7 @@ function NightToggle() {
       aria-label={label}
       title={label}
       onClick={() => nightMode.toggle()}
+      data-haptic="medium"
       className={cn(
         "group relative grid h-11 w-11 place-items-center overflow-hidden rounded-[14px] border shadow-panel transition-[background-color,border-color,transform] duration-500 active:scale-90",
         night ? "border-[#2A3B57] bg-[#12233F] text-[#FFC274]" : "border-hairline bg-paper text-ink hover:bg-sand",
@@ -66,6 +67,7 @@ function HudToggle() {
       aria-label={label}
       title={label}
       onClick={() => hudVisibility.toggle()}
+      data-haptic="medium"
       className={cn(
         "flex h-11 items-center justify-center gap-2 rounded-[14px] border shadow-panel transition-[background-color,border-color,width,transform] duration-300 active:scale-95",
         hidden ? "border-ink bg-ink px-3.5 text-paper hover:bg-[#1C3157]" : "w-11 border-hairline bg-paper text-ink hover:bg-sand",
