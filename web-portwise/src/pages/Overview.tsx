@@ -3,6 +3,7 @@ import { HudLayout } from "@/components/hud/HudLayout";
 import { KpiStack } from "@/components/hud/KpiStack";
 import { AlertsPanel } from "@/components/hud/AlertsPanel";
 import { BerthSchedule } from "@/components/hud/BerthSchedule";
+import { PortSchedule } from "@/components/hud/PortSchedule";
 import { usePort } from "@/state/PortProvider";
 
 export default function Overview() {
@@ -12,5 +13,10 @@ export default function Overview() {
     setView("overview");
   }, [setPageSelection, setView]);
 
-  return <HudLayout left={<KpiStack />} right={<AlertsPanel />} bottom={<BerthSchedule />} />;
+  return <HudLayout left={<KpiStack />} right={
+        <>
+          <AlertsPanel />
+          <PortSchedule />
+        </>
+      } bottom={<BerthSchedule />} />;
 }

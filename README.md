@@ -116,6 +116,7 @@ This morning's scenario:
 - The HUD stays on light paper, so the UI is always readable.
 
 ### 🧭 Operator HUD
+- **Arrivals & departures board**: a live list of every berthing (ETB/ATB) and sailing (ETD/ATD) today. It shows planned vs. estimated times, delay minutes and reasons, cargo or approach progress, a countdown to the next movement and an on-time %. Weather holds push estimates back. It is on both Overview and Vessels.
 - **KPIs**: TEU today, crane productivity, on-time berthing, yard utilisation.
 - **Alerts**: late vessels, gate congestion, wind stops. Click one to fly the camera to it.
 - **24 h berth plan** Gantt chart with a moving now-line.
@@ -130,7 +131,7 @@ This morning's scenario:
 | Route | Screen | What you get |
 | --- | --- | --- |
 | `/` | **Overview** | Full-bleed port, KPI stack, alerts, 24 h berth plan |
-| `/vessels` | **Vessels** | Vessels grouped Under way / At berth / At anchor / Expected / Sailed, plus a VTS "Port movements" panel |
+| `/vessels` | **Vessels** | Vessels grouped Under way / At berth / At anchor / Expected / Sailed, plus the Arrivals & departures board and a VTS "Port movements" panel |
 | `/vessels/:id` | **Vessel detail** | Overview, Containers, Activity (live crane-move log) and AIS tabs; wind widget; berth-focused Gantt |
 | `/yard`, `/yard/:blockId?c=:containerId` | **Yard** | Block list with Import / Export / Reefer filters and occupancy bars; container card with "View journey" |
 | `/shipments/:id` | **Shipment** | 6-step journey timeline, a 3D route for the shipment's truck and live gate traffic |

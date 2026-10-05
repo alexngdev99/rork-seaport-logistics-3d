@@ -4,6 +4,7 @@ import { ChevronRight, Ship } from "lucide-react";
 import { HudLayout } from "@/components/hud/HudLayout";
 import { BerthSchedule } from "@/components/hud/BerthSchedule";
 import { PortMovements } from "@/components/hud/PortMovements";
+import { PortSchedule } from "@/components/hud/PortSchedule";
 import { Panel, ProgressBar, StatusChip } from "@/components/hud/primitives";
 import type { Tone } from "@/components/hud/primitives";
 import { CARRIER_NAME, VESSELS } from "@/data/port";
@@ -130,7 +131,12 @@ export default function Vessels() {
           })}
         </Panel>
       }
-      right={<PortMovements />}
+      right={
+        <>
+          <PortSchedule />
+          <PortMovements />
+        </>
+      }
       bottom={<BerthSchedule />}
     />
   );
