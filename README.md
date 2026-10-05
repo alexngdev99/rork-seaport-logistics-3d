@@ -102,6 +102,10 @@ This morning's scenario:
 - Drayage trucks shuttle between the terminal and the district. Every site has a live status line and an info card.
 - **Live warehouse storage**: tap a storage site (CFS, FTZ warehouse, cold hub, Seastar DC, M&R depot, flour silos, bunker tanks) to see its cargo types and current capacity. You get stock vs. capacity with a fill %, a bay-by-bay capacity map (or tank and silo level gauges), the cargo mix, zone and chamber fill with live cold-room temperatures, and a live log of what is coming in and going out. Everything replays with the time bar.
 
+### 🔔 Berthing notifications
+- A small toast drops in under the top bar the moment a ship is all fast alongside. It has an animated quay vignette, the berth, ship, line and origin, the ATB, an on-time or delay chip, the assigned cranes and a **View** button that opens the vessel.
+- Toasts follow the sim clock, so they also fire during replay (tagged "Replay") and stay quiet when you scrub or jump.
+
 ### 🌦️ Real-time sky & weather
 - The sun follows its real path over Pasir Panjang on the Singapore clock. You get dawn, golden hour, dusk and a moonlit night. At dusk, crane floods, red aviation beacons, sodium yard masts, ship navigation lights, truck lights, buoy blinkers and lit windows come on.
 - Weather is live from [Open-Meteo](https://open-meteo.com) (with air quality) and refreshes every 10 minutes. There are six looks:
@@ -252,7 +256,8 @@ bun x tsc -p tsconfig.app.json --noEmit
         │   ├── BootScreen.tsx     # Preloading cover with the crane-stacking animation
         │   ├── hud/               # Floating panels: TopBar, TimeBar, KPIs, Alerts,
         │   │                      #   BerthSchedule, AIS panel, Port movements,
-        │   │                      #   Crane/Truck cards, CameraRail, SearchDialog…
+        │   │                      #   Crane/Truck cards, CameraRail, SearchDialog,
+        │   │                      #   StoragePanel, BerthingToasts…
         │   └── ui/                # shadcn/ui primitives
         ├── data/                  # Static scenario: vessels, cranes, trucks, containers,
         │                          #   facilities, drayage runs, layout constants, types

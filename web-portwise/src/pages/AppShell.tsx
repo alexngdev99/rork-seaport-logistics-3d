@@ -3,6 +3,7 @@ import { BootScreen } from "@/components/BootScreen";
 import { Outlet, useLocation } from "react-router-dom";
 import { TopBar } from "@/components/hud/TopBar";
 import { SearchDialog } from "@/components/hud/SearchDialog";
+import { BerthingToasts } from "@/components/hud/BerthingToasts";
 import { TimeBar, TimeKeys } from "@/components/hud/TimeBar";
 import { useIsCompact } from "@/hooks/useMediaQuery";
 import { usePort } from "@/state/PortProvider";
@@ -37,6 +38,7 @@ export default function AppShell() {
         <>
           <Outlet />
           <TimeKeys />
+          <BerthingToasts />
           {/* On phones and tablets the time controls live in the bottom sheet header. */}
           {isCompact ? null : <TimeBar />}
         </>

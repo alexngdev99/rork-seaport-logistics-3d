@@ -253,7 +253,81 @@
   animation: pw-drift 3.4s linear infinite;
 }
 
+@keyframes pw-berth-in {
+  from {
+    transform: translateX(-14px);
+  }
+  75% {
+    transform: translateX(0.6px);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes pw-line-draw {
+  from {
+    stroke-dashoffset: 10;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes pw-pop {
+  0% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  70% {
+    transform: scale(1.18);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes pw-toast-timer {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}
+
+/* Berthing toast: hull slides onto the quay, mooring lines go out, then the check pops. */
+.pw-berth-in {
+  animation: pw-berth-in 1s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.pw-line-draw {
+  stroke-dasharray: 10;
+  animation: pw-line-draw 0.45s ease-out 0.9s both;
+}
+.pw-pop {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: pw-pop 0.42s cubic-bezier(0.3, 1.6, 0.5, 1) 1.15s both;
+}
+.pw-toast-timer {
+  transform-origin: left;
+  animation-name: pw-toast-timer;
+  animation-timing-function: linear;
+  animation-fill-mode: both;
+}
+[data-sonner-toaster][data-expanded="true"] .pw-toast-timer,
+.pw-berth-toast:hover .pw-toast-timer {
+  animation-play-state: paused;
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .pw-berth-in,
+  .pw-line-draw,
+  .pw-pop {
+    animation: none;
+  }
   .pw-drop,
   .pw-sway,
   .pw-spin,
