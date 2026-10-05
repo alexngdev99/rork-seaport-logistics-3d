@@ -12,6 +12,8 @@ import { sceneRegistry } from "@/sim/simStore";
 import type { CameraView } from "@/state/PortProvider";
 import { selKey, usePort } from "@/state/PortProvider";
 import { useBootRevealed } from "@/state/boot";
+import { applyView, viewFromLocation } from "@/lib/viewLink";
+import type { SharedView } from "@/lib/viewLink";
 
 type V3 = [number, number, number];
 
@@ -31,6 +33,12 @@ const VIEWS: Record<CameraView, Shot> = {
 
 /** Imperative camera API used by the HUD camera rail. */
 export const cameraApi: { current: CameraControls | null } = { current: null };
+
+/** Current portrait/landscape pull-back factor, so shared views store a screen-independent range. */
+export const cameraFit: { current: number } = { current: 1 };
+
+/** Page effects (selection, view) settle right after the HUD mounts; a shared view holds through that. */
+const SHARED_HOLD_MS = 1500;
 
 const tmp = new THREE.Vector3();
 const tmpTarget = new THREE.Vector3();
@@ -93,6 +101,10 @@ export function CameraRig() {
   const fit = useThree((s) => fitFor(s.size.width / Math.max(1, s.size.height)));
   const viewOff = useRef<{ x: number; y: number; w: number; h: number }>({ x: 0, y: 0, w: 0, h: 0 });
   const fitRef = useRef<number>(fit);
+  // A `?cam=` link opens on that exact view instead of the page's default shot.
+  const pendingShared = useRef<SharedView | null>(viewFromLocation());
+  const sharedUntil = useRef<number>(0);
+  cameraFit.current = fit;
 
   useEffect(() => {
     cameraApi.current = ref.current;
@@ -114,6 +126,15 @@ export function CameraRig() {
     const c = ref.current;
     // Hold the wide establishing shot under the boot screen; the fly-in plays as it lifts.
     if (!c || !isRevealed) return;
+    const shared = pendingShared.current;
+    if (shared) {
+      pendingShared.current = null;
+      sharedUntil.current = performance.now() + SHARED_HOLD_MS;
+      followKey.current = undefined;
+      applyView(c, shared, true, fitRef.current);
+      return;
+    }
+    if (performance.now() < sharedUntil.current) return;
     const shot = (selection ? shotFor(selection) : null) ?? VIEWS[view];
     followKey.current = shot.follow;
     let target: V3 = shot.target;

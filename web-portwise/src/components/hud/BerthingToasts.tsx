@@ -17,7 +17,9 @@ import { usePort } from "@/state/PortProvider";
  * a toast fires when the sim clock plays forward across a berthing, never on a seek or scrub jump.
  */
 
-const TOASTER_ID = "berthing";
+/** The HUD's paper toaster (top-centre under the top bar); other in-map notices post here too. */
+export const HUD_TOASTER_ID = "berthing";
+const TOASTER_ID = HUD_TOASTER_ID;
 const DURATION_MS = 7000;
 /** Largest forward step (sim s) between ticks still treated as playback (×32 ticks ≈ 8 s). */
 const MAX_STEP = 20;
@@ -212,7 +214,7 @@ export function BerthingToasts() {
       visibleToasts={3}
       gap={10}
       style={TOASTER_STYLE}
-      containerAriaLabel="Berthing notifications"
+      containerAriaLabel="Port notifications"
     />
   );
 }

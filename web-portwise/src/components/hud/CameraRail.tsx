@@ -7,6 +7,7 @@ import { cameraApi } from "@/three/CameraRig";
 import { usePort } from "@/state/PortProvider";
 import { SkyWeatherButton } from "./SkyWeather";
 import { ShipTypeFilter } from "./ShipTypeFilter";
+import { ShareViewButton } from "./ShareView";
 import { hudVisibility, useHudHidden } from "@/state/hudVisibility";
 import { cn } from "@/lib/utils";
 
@@ -156,6 +157,7 @@ export function CameraRail() {
     <SkyWeatherButton />
     <ShipTypeFilter />
     <FullscreenToggle />
+    <ShareViewButton />
     <div role="toolbar" aria-label="Camera controls" aria-orientation="vertical" className="panel flex flex-col overflow-hidden [@media(max-height:559px)]:hidden">
       {/* Phones pinch to zoom, so the +/- buttons are tablet/desktop only. */}
       <button type="button" className={`${btn} max-md:hidden`} aria-label="Zoom in" title="Zoom in" onClick={() => void cameraApi.current?.dolly(30, true)}>
