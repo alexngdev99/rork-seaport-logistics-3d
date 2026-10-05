@@ -114,7 +114,6 @@ export const FACILITIES: Facility[] = [
     summary: "Free Trade Zone storage: goods stay GST- and duty-suspended until they are imported into Singapore, re-exported or transshipped.",
     stats: [
       ["Pallet positions", "9,600"],
-      ["In FTZ", "7,140 pallets"],
       ["Released today", "212 pallets"],
       ["Singapore Customs", "On site"],
     ],
@@ -138,7 +137,6 @@ export const FACILITIES: Facility[] = [
     stats: [
       ["Chambers", "6 · −25 °C to +4 °C"],
       ["Reefer plugs", "240"],
-      ["Pallets frozen", "3,880"],
       ["Temp alarms", "0"],
     ],
     util: 0.69,
@@ -251,7 +249,6 @@ export const FACILITIES: Facility[] = [
     h: 10,
     summary: "Empty container depot with maintenance & repair, washing and reefer pre-trip inspections before boxes go back into service.",
     stats: [
-      ["Empties stored", "2,940 TEU"],
       ["Repairs today", "38"],
       ["Reefer PTI", "22"],
       ["Wash bays", "4"],
@@ -364,7 +361,6 @@ export const FACILITIES: Facility[] = [
     summary: "Wheat silos and flour mill. Bagged flour is stuffed into containers for export across Southeast Asia.",
     stats: [
       ["Silos", "8 × 5,000 t"],
-      ["Stored", "29,400 t"],
       ["Milling line", "Running"],
     ],
     util: 0.73,

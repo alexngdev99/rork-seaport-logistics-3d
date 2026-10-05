@@ -100,6 +100,7 @@ This morning's scenario:
 - CFS, an FTZ warehouse, a cold chain hub, an **ICA inspection centre with a drive-through X-ray portal**, a truck staging lot and a service station.
 - A distribution centre with rooftop solar, an M&R depot, semiconductor, pharma, food and steel plants, flour mill silos and a **bunker terminal** with a tanker at the jetty.
 - Drayage trucks shuttle between the terminal and the district. Every site has a live status line and an info card.
+- **Live warehouse storage**: tap a storage site (CFS, FTZ warehouse, cold hub, Seastar DC, M&R depot, flour silos, bunker tanks) to see its cargo types and current capacity. You get stock vs. capacity with a fill %, a bay-by-bay capacity map (or tank and silo level gauges), the cargo mix, zone and chamber fill with live cold-room temperatures, and a live log of what is coming in and going out. Everything replays with the time bar.
 
 ### 🌦️ Real-time sky & weather
 - The sun follows its real path over Pasir Panjang on the Singapore clock. You get dawn, golden hour, dusk and a moonlit night. At dusk, crane floods, red aviation beacons, sodium yard masts, ship navigation lights, truck lights, buoy blinkers and lit windows come on.
@@ -260,6 +261,7 @@ bun x tsc -p tsconfig.app.json --noEmit
         │   ├── simStore.ts        # The sim clock, replay controls, derived live state
         │   ├── constants.ts       # Start time, replay window, formatters
         │   ├── logistics.ts       # Rail shuttle, customs scanner, facility live status
+        │   ├── storage.ts         # Live warehouse stock, zones and movements
         │   └── ais/
         │       ├── nmea.ts        # AIVDM encode/decode, checksums, Class A intervals
         │       ├── voyage.ts      # Leg-based ground-truth ship motion
@@ -389,6 +391,7 @@ All scenario data lives in plain TypeScript under `src/data/` and `src/sim/`:
 | AIS static data (MMSI, call sign, size, draught) | `src/sim/ais/static.ts` |
 | Map origin (lat/lon) and scale | `src/sim/ais/geo.ts` |
 | Rail shuttle and customs cycles | `src/sim/logistics.ts` |
+| Warehouse cargo, capacity and zones | `src/data/storage.ts` |
 
 Tips:
 - Keep new motion **deterministic in `t`**. If something needs randomness, seed it from an ID, never from `Math.random()` per frame.

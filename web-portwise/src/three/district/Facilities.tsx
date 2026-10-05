@@ -14,6 +14,9 @@ import { usePort } from "@/state/PortProvider";
 import { RailIcd } from "./RailIcd";
 import { SCAN } from "@/sim/logistics";
 import { ShipGate } from "../ShipGate";
+import { STORAGE_IDS, fillTone, storageAt } from "@/sim/storage";
+import { simT, useSimTick } from "@/sim/simStore";
+import { cn } from "@/lib/utils";
 
 const KIND_TONE: Record<string, ChipTone> = {
   rail: "harbor",
@@ -29,6 +32,16 @@ const KIND_TONE: Record<string, ChipTone> = {
   fuel: "brick",
 };
 
+const FILL_TEXT = { moss: "text-moss", amber: "text-[#9A6A08]", brick: "text-brick" } as const;
+
+/** Live fill % on a storage site's chip (own component so only it re-renders each sim tick). */
+function ChipFill({ id }: { id: string }) {
+  useSimTick();
+  const live = storageAt(id, simT());
+  if (!live) return null;
+  return <span className={cn("font-mono tnum", FILL_TEXT[fillTone(live.fill)])}>{Math.round(live.fill * 100)}%</span>;
+}
+
 /** Makes a facility hoverable/clickable and pins its name chip (always on the Logistics page). */
 function FacilityShell({ id, children }: { id: string; children: ReactNode }) {
   const f = facilityById(id);
@@ -37,12 +50,14 @@ function FacilityShell({ id, children }: { id: string; children: ReactNode }) {
   const selected = selection?.kind === "facility" && selection.id === id;
   const hot = hovered?.kind === "facility" && hovered.id === id;
   const show = selected || hot || view === "logistics";
+  const isStorage = STORAGE_IDS.includes(id);
   return (
     <group>
       <Selectable sel={{ kind: "facility", id }}>{children}</Selectable>
       {show ? (
         <Chip3D position={[f.x, f.h + 3, f.z]} tone={KIND_TONE[f.kind] ?? "ink"} active={selected} onClick={() => open({ kind: "facility", id })}>
           {f.short}
+          {isStorage ? <ChipFill id={id} /> : null}
         </Chip3D>
       ) : null}
     </group>

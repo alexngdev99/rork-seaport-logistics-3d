@@ -4,6 +4,8 @@ import { ArrowRight, ChevronRight, Network, ScanLine, TrainFront, Truck as Truck
 import { HudLayout } from "@/components/hud/HudLayout";
 import { DefRow, IconButton, Panel, PanelHeader, ProgressBar, StatusChip } from "@/components/hud/primitives";
 import { FacilityIcon } from "@/components/hud/FacilityIcon";
+import { StoragePanel } from "@/components/hud/StoragePanel";
+import { fillTone, storageAt } from "@/sim/storage";
 import { truckStatusTone } from "@/components/hud/TruckCard";
 import { FACILITIES, FACILITY_GROUPS, facilityById } from "@/data/facilities";
 import type { Facility } from "@/data/facilities";
@@ -33,6 +35,7 @@ function FacilityList({ activeId }: { activeId?: string }) {
             <ul>
               {FACILITIES.filter((f) => f.group === g).map((f) => {
                 const live = facilityLive(f.id, t);
+                const store = storageAt(f.id, t);
                 const active = f.id === activeId;
                 return (
                   <li key={f.id}>
@@ -56,6 +59,14 @@ function FacilityList({ activeId }: { activeId?: string }) {
                           <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full", `bg-${live.tone === "slate" ? "slate" : live.tone}`)} />
                           <span className="truncate">{live.label}</span>
                         </span>
+                        {store ? (
+                          <span className="mt-1 flex items-center gap-2">
+                            <span className="h-1 flex-1 overflow-hidden rounded-full bg-sand">
+                              <span className={cn("block h-full rounded-full transition-[width] duration-700", `bg-${fillTone(store.fill)}`)} style={{ width: `${Math.min(100, store.fill * 100)}%` }} />
+                            </span>
+                            <span className="shrink-0 font-mono text-[10.5px] font-semibold text-ink tnum">{pct(store.fill)} full</span>
+                          </span>
+                        ) : null}
                       </span>
                       <ChevronRight className="h-4 w-4 shrink-0 text-slate transition-transform group-hover:translate-x-0.5" />
                     </Link>
@@ -160,6 +171,7 @@ function FacilityCard({ f }: { f: Facility }) {
   const t = simT();
   const live = facilityLive(f.id, t);
   const hasTrucks = DRAYAGE_TRUCKS.some((d) => d.facilityId === f.id);
+  const isStorage = storageAt(f.id, t) !== null;
   return (
     <Panel className="w-full p-4" aria-label={f.name}>
       <PanelHeader
@@ -179,14 +191,19 @@ function FacilityCard({ f }: { f: Facility }) {
       </div>
       <p className="mt-3 text-[12.5px] leading-relaxed text-slate">{f.summary}</p>
       {live.progress !== undefined ? <ProgressBar value={live.progress} tone="harbor" height="h-1.5" className="mt-3" live /> : null}
-      <div className="mt-4">
-        <div className="flex items-center justify-between text-[12.5px]">
-          <span className="text-slate">{f.utilLabel}</span>
-          <span className="font-mono font-bold text-ink tnum">{pct(f.util)}</span>
+      {isStorage ? (
+        <StoragePanel facilityId={f.id} t={t} />
+      ) : (
+        <div className="mt-4">
+          <div className="flex items-center justify-between text-[12.5px]">
+            <span className="text-slate">{f.utilLabel}</span>
+            <span className="font-mono font-bold text-ink tnum">{pct(f.util)}</span>
+          </div>
+          <ProgressBar value={f.util} tone={f.util >= 0.85 ? "brick" : f.util >= 0.7 ? "amber" : "moss"} height="h-2" className="mt-1.5" />
         </div>
-        <ProgressBar value={f.util} tone={f.util >= 0.85 ? "brick" : f.util >= 0.7 ? "amber" : "moss"} height="h-2" className="mt-1.5" />
-      </div>
-      <dl className="mt-3">
+      )}
+      {isStorage ? <p className="eyebrow mt-4">Site</p> : null}
+      <dl className={isStorage ? "mt-1" : "mt-3"}>
         <DefRow label="Operator" mono={false}>
           {f.operator}
         </DefRow>
