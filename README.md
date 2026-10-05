@@ -101,8 +101,18 @@ This morning's scenario:
 - A distribution centre with rooftop solar, an M&R depot, semiconductor, pharma, food and steel plants, flour mill silos and a **bunker terminal** with a tanker at the jetty.
 - Drayage trucks shuttle between the terminal and the district. Every site has a live status line and an info card.
 
-### 🌙 Night view
-- One toggle eases the scene into night. Crane floods, red aviation beacons, sodium yard masts, ship navigation lights (red port, green starboard, white masthead), truck head and tail lights, buoy blinkers and lit windows all come on.
+### 🌦️ Real-time sky & weather
+- The sun follows its real path over Pasir Panjang on the Singapore clock. You get dawn, golden hour, dusk and a moonlit night. At dusk, crane floods, red aviation beacons, sodium yard masts, ship navigation lights, truck lights, buoy blinkers and lit windows come on.
+- Weather is live from [Open-Meteo](https://open-meteo.com) (with air quality) and refreshes every 10 minutes. There are six looks:
+  - **Clear** and **Cloudy**.
+  - **Rain**: wind-slanted streaks and raindrop rings on the water.
+  - **Storm**: lightning, a choppy grey sea, and ships pitching and rolling.
+  - **Fog** and **Haze**.
+- It affects operations:
+  - Gusts of 20 m/s or more, or lightning, put the quay cranes on a weather hold (booms raised).
+  - Rain and fog cut crane productivity.
+  - A live weather alert tops the alerts list.
+- **Demo panel** (weather button on the camera rail): a 24 h sky slider, a 72 s day time-lapse, weather presets and a "Back to live" button. Keys: N toggles day/night, W cycles the weather.
 - The HUD stays on light paper, so the UI is always readable.
 
 ### 🧭 Operator HUD
@@ -259,10 +269,12 @@ bun x tsc -p tsconfig.app.json --noEmit
         ├── state/
         │   ├── PortProvider.tsx   # Selection, routing and camera focus
         │   ├── boot.ts            # Boot stage store
-        │   ├── nightMode.ts       # Day/night toggle (persisted) + eased blend
+        │   ├── environment.ts     # Sky clock (live / manual / time-lapse), live + demo weather, port impact
+        │   ├── nightMode.ts       # Eased night-light blend
         │   └── hudVisibility.ts   # Hide panels toggle
         └── three/
-            ├── PortScene.tsx      # <Canvas>, lighting, fog, day/night blend
+            ├── PortScene.tsx      # <Canvas> and world
+            ├── Atmosphere.tsx     # Sun path, sky/fog ramps, weather blend, rain, lightning
             ├── CameraRig.tsx      # CameraControls + fly-to shots
             ├── SceneReady.tsx     # Shader precompile + warm frames for boot
             ├── Water.tsx, Terrain.tsx
@@ -325,7 +337,7 @@ Scene geometry: north is −z, east is +x, and **1 scene unit = 3 m**. `geo.ts` 
 
 - **Instancing everywhere.** Yard containers, trees, buildings, cars and lights are `InstancedMesh`es. Per-frame updates write matrices or colours in place.
 - **Floating labels** (`Chip3D`) use drei's `<Html>` and stay below the HUD in z-order. 3D signage uses troika SDF `<Text>` with a bundled font.
-- **Night mode** blends one `nightFx.mix` value (0 → 1 over ~1.5 s) that drives sky, fog, hemisphere light, water colour and the opacity of additive glow sprites and ground light pools.
+- **Sky & weather**: one rig computes the real solar position and eases the weather layers (`weatherFx`: cloud, rain, storm, fog, haze, wind, crane hold). It also drives `nightFx.mix`, which sets the sky, fog, lights, water colour and night glow sprites. Rain is a single GPU line-segment buffer animated in the vertex shader from sim time. Lightning strikes are a seeded function of sim time, so replay stays exact.
 - **Selection** uses an orange emissive tint on parts plus a world-space outline on hulls and containers. Hover uses a lighter tint.
 - **Adaptive resolution** with drei's `<AdaptiveDpr>` keeps the frame rate up on weaker GPUs.
 
@@ -349,7 +361,7 @@ Then the cover fades out, the HUD mounts and the camera fly-in starts. A 30 s sa
 | --- | --- | --- |
 | `simStore` | Module store + `useSyncExternalStore` | Clock, replay controls, derived live numbers, alerts, events |
 | `PortProvider` | React context (`@nkzw/create-context-hook`) | Current selection, camera focus, route sync |
-| `nightMode` | Module store, persisted to `localStorage` | Day/night toggle |
+| `environment` | Module store + React Query (Open-Meteo) | Sky clock, live/demo weather, port impact |
 | `hudVisibility` | Module store | Hide panels |
 | `boot` | Module store | Boot progress and reveal |
 

@@ -16,6 +16,7 @@ import type { ChipTone } from "./Chip3D";
 import { FONT_URL } from "./Terrain";
 import { Glow, LIGHT, Pool, litMat } from "./nightLights";
 import { usePort } from "@/state/PortProvider";
+import { seaState } from "@/sim/weatherFx";
 
 const BEAM = 7.6;
 const HULL_H = 4.2;
@@ -280,7 +281,13 @@ export function BerthedVessel({ vessel }: { vessel: Vessel }) {
     [vessel],
   );
   useFrame(() => {
-    if (group.current) group.current.position.y = WATER_Y + Math.sin(simT() * 0.6 + vessel.berth) * 0.05;
+    const g = group.current;
+    if (!g) return;
+    const t = simT();
+    const sea = seaState();
+    g.position.y = WATER_Y + Math.sin(t * 0.6 + vessel.berth) * 0.05 * sea;
+    // Moored hulls only roll a touch, even in a squall.
+    g.rotation.x = Math.sin(t * 0.45 + vessel.berth * 1.7) * 0.002 * (sea - 1);
   });
   return (
     <group ref={group} position={[berthX(vessel.berth), WATER_Y, SHIP_Z]}>
@@ -337,8 +344,10 @@ export function PortCallVessel({ vessel }: { vessel: Vessel }) {
     const f = aisFix(vessel.id, now, fix);
     g.visible = Math.abs(f.x) < VISIBLE_X && f.z < 700;
     if (!g.visible) return;
-    g.position.set(f.x, WATER_Y + Math.sin(now * 0.7 + vessel.berth) * 0.06, f.z);
+    const sea = seaState();
+    g.position.set(f.x, WATER_Y + Math.sin(now * 0.7 + vessel.berth) * 0.06 * sea, f.z);
     g.rotation.y = bearingToRotY(f.heading);
+    g.rotation.x = Math.sin(now * 0.5 + vessel.berth) * 0.004 * (sea - 1);
     wake.current = f.status === 0 ? Math.min(1, f.sog / 6) : 0;
 
     const presence = tugPresence(call.voyage.tugWindows, now);
@@ -408,8 +417,12 @@ function TransitShip({ tr }: { tr: Transit }) {
     const f = aisFix(tr.id, t, fix);
     g.visible = Math.abs(f.x) < VISIBLE_X;
     if (!g.visible) return;
-    g.position.set(f.x, WATER_Y + Math.sin(t * 0.8 + tr.length) * 0.05, f.z);
+    const sea = seaState();
+    g.position.set(f.x, WATER_Y + Math.sin(t * 0.8 + tr.length) * 0.05 * sea, f.z);
     g.rotation.y = bearingToRotY(f.heading);
+    // Under-way ships pitch and roll in the swell.
+    g.rotation.x = Math.sin(t * 0.55 + tr.length) * 0.006 * (sea - 1);
+    g.rotation.z = Math.sin(t * 0.37 + tr.length * 0.3) * 0.004 * (sea - 1);
     wake.current = Math.min(1, f.sog / 6);
   });
   return (

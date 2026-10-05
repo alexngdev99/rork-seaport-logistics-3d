@@ -1,6 +1,5 @@
-import { Suspense, memo, useRef } from "react";
-import * as THREE from "three";
-import { Canvas, useFrame, useThree } from "@react-three/fiber";
+import { Suspense } from "react";
+import { Canvas } from "@react-three/fiber";
 import { AdaptiveDpr } from "@react-three/drei";
 import { VESSELS, QUAY_CRANES } from "@/data/port";
 import { COLORS } from "@/data/layout";
@@ -14,28 +13,12 @@ import { YardBlocks, YardContainers, YardCrane } from "./Yard";
 import { Trucks } from "./Trucks";
 import { District } from "./district/District";
 import { CameraRig } from "./CameraRig";
-import { updateNight } from "./nightLights";
-import { nightFx, nightMode } from "@/state/nightMode";
 import { boot } from "@/state/boot";
 import { SceneReady } from "./SceneReady";
-
-const DAY = {
-  bg: new THREE.Color(COLORS.canvas),
-  sky: new THREE.Color("#FFF8EA"),
-  ground: new THREE.Color("#C9BFA8"),
-  sun: new THREE.Color("#FFF4E0"),
-};
-const NIGHT = {
-  bg: new THREE.Color("#0B1729"),
-  sky: new THREE.Color("#5274AC"),
-  ground: new THREE.Color("#151D2A"),
-  sun: new THREE.Color("#A9C2EE"),
-};
-const smooth = (k: number): number => k * k * (3 - 2 * k);
+import { Lightning, Rain, SkyRig } from "./Atmosphere";
 
 /** Phones and tablets: lighter pixel ratio and shadow map to keep frame rate and battery in check. */
 const IS_LITE = typeof window !== "undefined" && (window.matchMedia("(pointer: coarse)").matches || window.innerWidth < 1024);
-const SHADOW_MAP = IS_LITE ? 2048 : 4096;
 const DPR: [number, number] = IS_LITE ? [1, 1.5] : [1, 1.75];
 
 const YARD_CRANES: Array<[string, number]> = [
@@ -49,54 +32,6 @@ const YARD_CRANES: Array<[string, number]> = [
   ["A10", 3.6],
   ["D8", 5.1],
 ];
-
-/** Sun by day, moon by night: eases every light, the sky, fog and night lamps between the two. */
-const Lights = memo(function Lights() {
-  const hemi = useRef<THREE.HemisphereLight>(null);
-  const sun = useRef<THREE.DirectionalLight>(null);
-  const scene = useThree((s) => s.scene);
-
-  useFrame(({ clock }, dt) => {
-    const target = nightMode.get() ? 1 : 0;
-    const m = nightFx.mix;
-    nightFx.mix = Math.abs(target - m) < 0.003 ? target : m + (target - m) * Math.min(1, dt * 2.2);
-    const k = smooth(nightFx.mix);
-    if (hemi.current) {
-      hemi.current.color.copy(DAY.sky).lerp(NIGHT.sky, k);
-      hemi.current.groundColor.copy(DAY.ground).lerp(NIGHT.ground, k);
-      hemi.current.intensity = THREE.MathUtils.lerp(1.15, 0.62, k);
-    }
-    if (sun.current) {
-      sun.current.color.copy(DAY.sun).lerp(NIGHT.sun, k);
-      sun.current.intensity = THREE.MathUtils.lerp(2.1, 0.5, k);
-    }
-    if (scene.background instanceof THREE.Color) scene.background.copy(DAY.bg).lerp(NIGHT.bg, k);
-    if (scene.fog instanceof THREE.Fog) scene.fog.color.copy(DAY.bg).lerp(NIGHT.bg, k);
-    updateNight(k, clock.elapsedTime);
-  });
-
-  return (
-    <>
-      <hemisphereLight ref={hemi} args={["#FFF8EA", "#C9BFA8", 1.15]} />
-      <directionalLight
-        ref={sun}
-        position={[130, 200, 100]}
-        intensity={2.1}
-        color="#FFF4E0"
-        castShadow
-        shadow-mapSize={[SHADOW_MAP, SHADOW_MAP]}
-        shadow-camera-left={-470}
-        shadow-camera-right={470}
-        shadow-camera-top={250}
-        shadow-camera-bottom={-250}
-        shadow-camera-near={20}
-        shadow-camera-far={800}
-        shadow-bias={-0.0004}
-        shadow-normalBias={0.04}
-      />
-    </>
-  );
-});
 
 function World() {
   return (
@@ -121,6 +56,8 @@ function World() {
         <YardCrane key={id} blockId={id} phase={phase} />
       ))}
       <Trucks />
+      <Rain />
+      <Lightning />
     </>
   );
 }
@@ -140,7 +77,7 @@ export default function PortScene() {
     >
       <color attach="background" args={[COLORS.canvas]} />
       <fog attach="fog" args={[COLORS.canvas, 520, 1250]} />
-      <Lights />
+      <SkyRig />
       <Suspense fallback={null}>
         <World />
         <SceneReady />

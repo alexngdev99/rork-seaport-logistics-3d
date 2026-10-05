@@ -4,6 +4,7 @@ import type { Alert } from "@/data/types";
 import { cn } from "@/lib/utils";
 import { useSimTick, visibleAlerts } from "@/sim/simStore";
 import { usePort } from "@/state/PortProvider";
+import { env, useEnv, weatherAlert } from "@/state/environment";
 import { Panel } from "./primitives";
 
 const DOT: Record<Alert["severity"], string> = {
@@ -33,7 +34,9 @@ export function AlertsPanel() {
   useSimTick();
   const { open } = usePort();
   const [all, setAll] = useState<boolean>(false);
-  const alerts = visibleAlerts();
+  useEnv();
+  const wx = weatherAlert(env.weather());
+  const alerts = wx ? [wx, ...visibleAlerts()] : visibleAlerts();
   const list = all ? alerts : alerts.slice(0, 3);
   return (
     <Panel className="w-full p-3" aria-label="Alerts">

@@ -6,6 +6,7 @@ import { ARRIVAL_SECONDS, MIN_T, SIM_START_SEC, fmtClock, fmtDuration } from "./
 import { ORIENT_LOTUS, PORT_CALLS, PORT_EVENTS, T_MK_CARGO_DONE, T_MK_SAILED, T_MK_SLIP } from "./ais/portCalls";
 import type { VoyagePhase } from "./ais/voyage";
 import { aisDef, aisFix, newFix } from "./ais/tracker";
+import { weatherFx } from "./weatherFx";
 
 export { ARRIVAL_SECONDS, MIN_T, SIM_START_SEC, fmtClock, fmtDuration };
 
@@ -173,6 +174,14 @@ function reasonAt(c: QuayCrane, t: number): string {
 
 /** Crane state at sim time t (STS-04 worked until the wind stop, STS-05 starts after ORIENT LOTUS berths, STS-01 stops when MERLION STAR is complete). */
 export function craneStatusAt(c: QuayCrane, t: number): CraneStatus {
+  const base = scheduledStatusAt(c, t);
+  // Weather hold (wind gusts over the limit or lightning): every working crane parks and raises its boom.
+  const hold = weatherFx.hold;
+  if (hold <= 0.001 || base.state !== "active") return base;
+  return { state: "paused", reason: weatherFx.holdReason || "Weather hold", loading: base.loading, boom: Math.max(base.boom, ease(hold)) };
+}
+
+function scheduledStatusAt(c: QuayCrane, t: number): CraneStatus {
   const loading = VESSELS.find((v) => v.id === c.vesselId)?.status === "loading";
   const w = windowOf(c);
   const reason = reasonAt(c, t);
@@ -490,7 +499,7 @@ export const simActions = {
 /** Live crane productivity used by the KPI tile, drifts slightly for a "live" feel. */
 export function liveCraneRate(): number {
   const t = simNowSec();
-  return 30.6 + Math.sin(t / 37) * 0.6 + Math.sin(t / 11) * 0.2;
+  return (30.6 + Math.sin(t / 37) * 0.6 + Math.sin(t / 11) * 0.2) * weatherFx.productivity;
 }
 
 /** Registry of live 3D objects for camera fly-to and follow. Key: `${kind}:${id}`. */

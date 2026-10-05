@@ -8,6 +8,7 @@ import { SCAN, scanAt } from "@/sim/logistics";
 import type { ScanState } from "@/sim/logistics";
 import { simT } from "@/sim/simStore";
 import { nightFx } from "@/state/nightMode";
+import { weatherFx } from "@/sim/weatherFx";
 import { unitBox } from "../parts";
 import { TruckModel } from "../Trucks";
 import { Glow, LIGHT } from "../nightLights";
@@ -207,15 +208,18 @@ export function Smoke() {
     const m = ref.current;
     if (!m) return;
     const t = simT();
+    // Plumes lean downwind; strong wind flattens them, rain beats them down.
+    const drift = 4 + weatherFx.windMs * 2.2;
+    const lift = 1 / (1 + weatherFx.windMs * 0.06 + weatherFx.rain * 0.5);
     puffs.forEach((p, i) => {
       const k = (((t + p.phase) % p.life) + p.life) % p.life / p.life;
-      o.position.set(p.x + k * 9, p.y0 + k * p.life * p.rise, p.z - k * 3);
+      o.position.set(p.x + k * drift * weatherFx.windToX, p.y0 + k * p.life * p.rise * lift, p.z + k * drift * weatherFx.windToZ);
       o.scale.setScalar(p.size * (1 + k * 3.2));
       o.updateMatrix();
       m.setMatrixAt(i, o.matrix);
     });
     m.instanceMatrix.needsUpdate = true;
-    (m.material as THREE.MeshStandardMaterial).opacity = 0.42 - nightFx.mix * 0.2;
+    (m.material as THREE.MeshStandardMaterial).opacity = (0.42 - nightFx.mix * 0.2) * (1 - weatherFx.rain * 0.4);
   });
   return (
     <instancedMesh ref={ref} args={[undefined, undefined, puffs.length]} frustumCulled={false} raycast={noRay}>

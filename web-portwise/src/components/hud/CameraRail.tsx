@@ -1,51 +1,13 @@
 import { useEffect, useState } from "react";
-import { Eye, EyeOff, Home, Maximize, Minimize, Minus, Moon, Plus, RotateCw, Share, SquarePlus, Sun } from "lucide-react";
+import { Eye, EyeOff, Home, Maximize, Minimize, Minus, Plus, RotateCw, Share, SquarePlus } from "lucide-react";
 import { toast } from "sonner";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { fullscreen, useIsFullscreen, type FullscreenSupport } from "@/state/fullscreen";
 import { cameraApi } from "@/three/CameraRig";
 import { usePort } from "@/state/PortProvider";
-import { nightMode, useNightMode } from "@/state/nightMode";
+import { SkyWeatherButton } from "./SkyWeather";
 import { hudVisibility, useHudHidden } from "@/state/hudVisibility";
 import { cn } from "@/lib/utils";
-
-/** Day / night switch for the 3D scene. Shortcut: N. */
-function NightToggle() {
-  const night = useNightMode();
-
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.metaKey || e.ctrlKey || e.altKey || e.key.toLowerCase() !== "n") return;
-      const el = e.target as HTMLElement | null;
-      if (el?.closest("input, textarea, select, [contenteditable='true'], [role='dialog']")) return;
-      nightMode.toggle();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, []);
-
-  const label = night ? "Switch to day view (N)" : "Switch to night view (N)";
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={night}
-      aria-label={label}
-      title={label}
-      onClick={() => nightMode.toggle()}
-      data-haptic="medium"
-      className={cn(
-        "group relative grid h-11 w-11 place-items-center overflow-hidden rounded-[14px] border shadow-panel transition-[background-color,border-color,transform] duration-500 active:scale-90",
-        night ? "border-[#2A3B57] bg-[#12233F] text-[#FFC274]" : "border-hairline bg-paper text-ink hover:bg-sand",
-      )}
-    >
-      <Sun className={cn("absolute h-[19px] w-[19px] transition-all duration-500", night ? "translate-y-6 rotate-90 opacity-0" : "translate-y-0 rotate-0 opacity-100")} />
-      <Moon className={cn("absolute h-[18px] w-[18px] fill-current transition-all duration-500", night ? "translate-y-0 rotate-0 opacity-100" : "-translate-y-6 -rotate-90 opacity-0")} />
-      <span className={cn("absolute right-2 top-2 h-1 w-1 rounded-full bg-[#FFE0A6] transition-opacity duration-700", night ? "opacity-90" : "opacity-0")} />
-      <span className={cn("absolute bottom-2.5 left-2 h-[3px] w-[3px] rounded-full bg-[#FFE0A6] transition-opacity delay-150 duration-700", night ? "opacity-70" : "opacity-0")} />
-    </button>
-  );
-}
 
 /** Hides every floating panel so the whole map is visible. Shortcut: H. */
 function HudToggle() {
@@ -190,7 +152,7 @@ export function CameraRail() {
   return (
     <div className="pointer-events-auto flex flex-col items-end gap-2">
     <HudToggle />
-    <NightToggle />
+    <SkyWeatherButton />
     <FullscreenToggle />
     <div role="toolbar" aria-label="Camera controls" aria-orientation="vertical" className="panel flex flex-col overflow-hidden [@media(max-height:559px)]:hidden">
       {/* Phones pinch to zoom, so the +/- buttons are tablet/desktop only. */}

@@ -4,6 +4,7 @@ import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { PortProvider } from "@/state/PortProvider";
+import { LiveWeatherSync } from "@/components/LiveWeatherSync";
 
 import AppShell from "./pages/AppShell";
 import Overview from "./pages/Overview";
@@ -20,6 +21,7 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster position="top-center" />
+      <LiveWeatherSync />
       <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <PortProvider>
           <Routes>
