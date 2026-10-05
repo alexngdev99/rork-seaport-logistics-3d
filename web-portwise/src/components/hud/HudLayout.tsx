@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 import { CameraRail } from "./CameraRail";
 import { CraneCard } from "./CraneCard";
 import { TruckCard } from "./TruckCard";
-import { BottomSheet, SideDock } from "./BottomSheet";
+import { PanelSheet } from "./BottomSheet";
 import { TimeControls } from "./TimeBar";
 
 type Slot = "left" | "right" | "bottom" | "bottomLeft";
@@ -94,15 +94,15 @@ export function HudLayout({ left, right, bottom, bottomLeft, wideLeft, sheetOrde
           <CameraRail />
         </div>
         <GestureHint />
-        {isLandscapeShort ? (
-          <SideDock hidden={hidden} headerHeight={STACKED_H} header={<TimeControls stacked />}>
-            {content}
-          </SideDock>
-        ) : (
-          <BottomSheet hidden={hidden} headerHeight={isPhone ? STACKED_H : 60} header={<TimeControls stacked={isPhone} />}>
-            {content}
-          </BottomSheet>
-        )}
+        {/* One element for both orientations: rotating restyles it in place instead of remounting the panels. */}
+        <PanelSheet
+          mode={isLandscapeShort ? "dock" : "sheet"}
+          hidden={hidden}
+          headerHeight={isLandscapeShort || isPhone ? STACKED_H : 60}
+          header={<TimeControls stacked={isLandscapeShort || isPhone} />}
+        >
+          {content}
+        </PanelSheet>
       </div>
     );
   }

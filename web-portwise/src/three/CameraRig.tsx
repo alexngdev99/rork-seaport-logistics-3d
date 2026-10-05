@@ -92,6 +92,7 @@ export function CameraRig() {
   const isRevealed = useBootRevealed();
   const fit = useThree((s) => fitFor(s.size.width / Math.max(1, s.size.height)));
   const viewOff = useRef<{ x: number; y: number; w: number; h: number }>({ x: 0, y: 0, w: 0, h: 0 });
+  const fitRef = useRef<number>(fit);
 
   useEffect(() => {
     cameraApi.current = ref.current;
@@ -125,10 +126,23 @@ export function CameraRig() {
     }
     const [tx, ty, tz] = target;
     // Close-ups pull back less than page-wide establishing shots.
-    const k = selection ? 1 + (fit - 1) * 0.6 : fit;
+    const f = fitRef.current;
+    const k = selection ? 1 + (f - 1) * 0.6 : f;
     const [ox, oy, oz] = shot.offset.map((o) => o * k);
     void c.setLookAt(tx + ox, ty + oy, tz + oz, tx, ty, tz, true);
-  }, [key, view, homeNonce, selection, isRevealed, fit]);
+  }, [key, view, homeNonce, selection, isRevealed]);
+
+  // Rotation (portrait <-> landscape): keep the user's current framing and only ease the zoom so the same
+  // part of the port stays in view, instead of re-flying the page shot and throwing away their pan/rotate.
+  useEffect(() => {
+    const prev = fitRef.current;
+    fitRef.current = fit;
+    const c = ref.current;
+    if (!c || prev === fit || !isRevealed) return;
+    const ratio = selection ? (1 + (fit - 1) * 0.6) / (1 + (prev - 1) * 0.6) : fit / prev;
+    void c.dollyTo(THREE.MathUtils.clamp(c.distance * ratio, 14, 820), true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only a fit change should trigger this.
+  }, [fit]);
 
   useFrame((state, dt) => {
     // Shift the projection so the camera target sits in the middle of the map area the HUD leaves visible.

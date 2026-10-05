@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import type { KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerEvent, ReactNode, WheelEvent as ReactWheelEvent } from "react";
+import type { CSSProperties, KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerEvent, ReactNode, WheelEvent as ReactWheelEvent } from "react";
 import { cn } from "@/lib/utils";
 import { haptic } from "@/lib/haptics";
 import { hudInset } from "@/state/hudInset";
@@ -11,6 +11,10 @@ const HANDLE_H = 26;
 const PEEK_CONTENT = 92;
 const SNAPS: SheetSnap[] = ["peek", "half", "full"];
 const EASE = "transform 420ms cubic-bezier(0.22, 0.9, 0.24, 1)";
+const DOCK_FADE = "opacity 300ms ease, transform 300ms ease";
+
+/** `sheet`: bottom sheet (portrait). `dock`: left column (short landscape, e.g. a phone on its side). */
+export type PanelMode = "sheet" | "dock";
 
 interface Heights {
   peek: number;
@@ -32,6 +36,14 @@ interface DragState {
   isStretched: boolean;
 }
 
+interface PanelSheetProps {
+  mode: PanelMode;
+  header: ReactNode;
+  headerHeight: number;
+  children: ReactNode;
+  hidden: boolean;
+}
+
 const nearestSnap = (vis: number, h: Heights): SheetSnap => SNAPS.reduce((best, s) => (Math.abs(h[s] - vis) < Math.abs(h[best] - vis) ? s : best), "peek" as SheetSnap);
 
 /** Detent changes by tap / keyboard: a light tick, slightly firmer when the sheet opens fully. */
@@ -41,18 +53,27 @@ const setSnapWithHaptic = (next: SheetSnap): void => {
   sheet.set(next);
 };
 
+const translateFor = (vis: number, h: Heights): string => `translate3d(0, ${h.full - vis + (vis === 0 ? 24 : 0)}px, 0)`;
+
 /**
- * Phone / tablet HUD container: a draggable bottom sheet with peek, half and full detents
- * (Apple Maps pattern). The header (time controls) stays visible at every detent; content only
- * scrolls at full height, so vertical swipes elsewhere move the sheet.
+ * Phone / tablet HUD container.
+ * Portrait: a draggable bottom sheet with peek, half and full detents (Apple Maps pattern). The header
+ * (time controls) stays visible at every detent; content only scrolls at full height, so vertical swipes
+ * elsewhere move the sheet.
+ * Short landscape: the same element docks as a scrollable left column.
+ * Both modes share one element tree, so rotating the device restyles the panels in place: nothing
+ * remounts, and panel state, scroll position and the sheet detent all survive the rotation.
  */
-export function BottomSheet({ header, headerHeight, children, hidden }: { header: ReactNode; headerHeight: number; children: ReactNode; hidden: boolean }) {
+export function PanelSheet({ mode, header, headerHeight, children, hidden }: PanelSheetProps) {
   const snap = useSheetSnap();
+  const isDock = mode === "dock";
   const layerRef = useRef<HTMLDivElement>(null);
   const probeRef = useRef<HTMLDivElement>(null);
-  const sheetRef = useRef<HTMLDivElement>(null);
+  const sheetRef = useRef<HTMLElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<DragState | null>(null);
+  const modeRef = useRef<PanelMode>(mode);
+  modeRef.current = mode;
   const [avail, setAvail] = useState<number>(() => (typeof window === "undefined" ? 700 : window.innerHeight - 56));
   const [sab, setSab] = useState<number>(0);
 
@@ -79,13 +100,48 @@ export function BottomSheet({ header, headerHeight, children, hidden }: { header
   heightsRef.current = heights;
 
   const visible = hidden ? 0 : heights[snap];
-  const translateFor = (vis: number, h: Heights): string => `translate3d(0, ${h.full - vis + (vis === 0 ? 24 : 0)}px, 0)`;
 
-  // Tell the 3D camera how much of the map is covered so focused objects stay in view.
+  // Tell the 3D camera how much of the map is covered so focused objects stay centred in what is left.
   useEffect(() => {
-    hudInset.set(0, hidden ? 0 : Math.min(visible, heights.half));
-  }, [hidden, visible, heights.half]);
+    if (!isDock) hudInset.set(0, hidden ? 0 : Math.min(visible, heights.half));
+  }, [isDock, hidden, visible, heights.half]);
+  useLayoutEffect(() => {
+    const el = sheetRef.current;
+    if (!isDock || !el) return;
+    const update = () => hudInset.set(hidden ? 0 : el.offsetWidth + el.offsetLeft, 0);
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [isDock, hidden]);
   useEffect(() => () => hudInset.set(0, 0), []);
+
+  // Rotation: cancel any half-finished drag and fade the panels into their new shape.
+  const lastMode = useRef<PanelMode>(mode);
+  useLayoutEffect(() => {
+    if (lastMode.current === mode) return;
+    lastMode.current = mode;
+    dragRef.current = null;
+    const content = contentRef.current;
+    // Collapsed sheets clip their content, so start at the top rather than mid-list.
+    if (mode === "sheet" && sheet.get() !== "full" && content) content.scrollTop = 0;
+    const el = sheetRef.current;
+    if (!el) return;
+    // Jump straight to the new geometry (no slide from the old position), then cross-fade it in.
+    const transition = el.style.transition;
+    el.style.transition = "none";
+    void el.offsetHeight;
+    el.style.transition = transition;
+    if (hidden || typeof el.animate !== "function") return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    el.animate(
+      [
+        { opacity: 0, scale: "0.97" },
+        { opacity: 1, scale: "1" },
+      ],
+      { duration: 320, easing: "cubic-bezier(0.22, 0.9, 0.24, 1)" },
+    );
+  }, [mode, hidden]);
 
   const applyVisible = useCallback((vis: number) => {
     const el = sheetRef.current;
@@ -95,6 +151,7 @@ export function BottomSheet({ header, headerHeight, children, hidden }: { header
   }, []);
 
   const begin = useCallback((y: number) => {
+    if (modeRef.current === "dock") return;
     const s = sheet.get();
     dragRef.current = { startY: y, startVisible: heightsRef.current[s], lastY: y, lastT: performance.now(), v: 0, moved: false, startSnap: s, near: s, isStretched: false };
   }, []);
@@ -152,41 +209,41 @@ export function BottomSheet({ header, headerHeight, children, hidden }: { header
     if (!el) return;
     let sx = 0;
     let sy = 0;
-    let mode: "native" | "undecided" | "sheet" = "native";
+    let gesture: "native" | "undecided" | "sheet" = "native";
     const onStart = (e: TouchEvent) => {
-      if (e.touches.length !== 1) {
-        mode = "native";
+      if (e.touches.length !== 1 || modeRef.current === "dock") {
+        gesture = "native";
         return;
       }
       sx = e.touches[0].clientX;
       sy = e.touches[0].clientY;
-      mode = "undecided";
+      gesture = "undecided";
     };
     const onMove = (e: TouchEvent) => {
-      if (mode === "native") return;
+      if (gesture === "native") return;
       const t = e.touches[0];
       const dx = t.clientX - sx;
       const dy = t.clientY - sy;
-      if (mode === "undecided") {
+      if (gesture === "undecided") {
         if (Math.abs(dx) < 7 && Math.abs(dy) < 7) return;
         if (Math.abs(dx) > Math.abs(dy)) {
-          mode = "native";
+          gesture = "native";
           return;
         }
         const isFull = sheet.get() === "full";
         if (isFull && !(dy > 0 && el.scrollTop <= 0)) {
-          mode = "native";
+          gesture = "native";
           return;
         }
-        mode = "sheet";
+        gesture = "sheet";
         begin(sy);
       }
       e.preventDefault();
       move(t.clientY);
     };
     const onEnd = () => {
-      if (mode === "sheet") end();
-      mode = "native";
+      if (gesture === "sheet") end();
+      gesture = "native";
     };
     el.addEventListener("touchstart", onStart, { passive: true });
     el.addEventListener("touchmove", onMove, { passive: false });
@@ -233,12 +290,25 @@ export function BottomSheet({ header, headerHeight, children, hidden }: { header
     }
   };
   const onWheel = (e: ReactWheelEvent<HTMLDivElement>) => {
+    if (isDock) return;
     const s = sheet.get();
     if (s !== "full" && e.deltaY > 6) sheet.set(s === "peek" ? "half" : "full");
     else if (s === "full" && e.deltaY < -6 && (contentRef.current?.scrollTop ?? 0) <= 0) sheet.set("half");
   };
 
-  const isFull = snap === "full" && !hidden;
+  const isScrollable = isDock || (snap === "full" && !hidden);
+  const sectionStyle: CSSProperties = isDock
+    ? {
+        opacity: hidden ? 0 : 1,
+        transform: hidden ? "translate3d(-24px, 0, 0)" : "translate3d(0, 0, 0)",
+        transition: `${DOCK_FADE}, visibility 0s linear ${hidden ? "300ms" : "0s"}`,
+      }
+    : {
+        height: heights.full,
+        opacity: 1,
+        transform: translateFor(visible, heights),
+        transition: `${EASE}, visibility 0s linear ${hidden ? "420ms" : "0s"}`,
+      };
 
   return (
     <div ref={layerRef} className="pointer-events-none absolute inset-0 z-20 overflow-hidden">
@@ -246,11 +316,15 @@ export function BottomSheet({ header, headerHeight, children, hidden }: { header
       <section
         ref={sheetRef}
         aria-label="Port panels"
+        data-mode={mode}
         className={cn(
-          "pointer-events-auto absolute inset-x-0 bottom-0 flex flex-col overflow-hidden rounded-t-[22px] border border-b-0 border-hairline bg-canvas shadow-[0_-12px_32px_-14px_rgba(18,35,63,0.32)] md:inset-x-3",
+          "pointer-events-auto absolute z-20 flex flex-col overflow-hidden border border-hairline bg-canvas",
+          isDock
+            ? "bottom-[max(8px,var(--sab))] left-[max(12px,env(safe-area-inset-left))] top-2 w-[min(380px,46vw)] rounded-[18px] shadow-lift"
+            : "inset-x-0 bottom-0 rounded-t-[22px] border-b-0 shadow-[0_-12px_32px_-14px_rgba(18,35,63,0.32)] md:inset-x-3",
           hidden && "invisible",
         )}
-        style={{ height: heights.full, transform: translateFor(visible, heights), transition: `${EASE}, visibility 0s linear ${hidden ? "420ms" : "0s"}` }}
+        style={sectionStyle}
       >
         <div className="shrink-0 border-b border-hairline bg-paper">
           <button
@@ -262,9 +336,11 @@ export function BottomSheet({ header, headerHeight, children, hidden }: { header
             onClick={onHandleClick}
             onKeyDown={onHandleKey}
             data-haptic="off"
+            tabIndex={isDock ? -1 : 0}
+            aria-hidden={isDock ? true : undefined}
             aria-label={snap === "full" ? "Collapse panels" : "Expand panels"}
             aria-expanded={snap !== "peek"}
-            className="flex w-full cursor-grab touch-none items-center justify-center active:cursor-grabbing"
+            className={cn("w-full cursor-grab touch-none items-center justify-center active:cursor-grabbing", isDock ? "hidden" : "flex")}
             style={{ height: HANDLE_H }}
           >
             <span className="h-[5px] w-10 rounded-full bg-ink/20" />
@@ -274,45 +350,11 @@ export function BottomSheet({ header, headerHeight, children, hidden }: { header
         <div
           ref={contentRef}
           onWheel={onWheel}
-          className={cn("scroll-thin min-h-0 flex-1 overscroll-contain", isFull ? "overflow-y-auto" : "overflow-hidden")}
+          className={cn("scroll-thin min-h-0 flex-1 overscroll-contain", isScrollable ? "overflow-y-auto" : "overflow-hidden")}
         >
-          <div className="mx-auto flex max-w-[720px] flex-col gap-3 px-3 pb-[calc(var(--sab)+20px)] pt-3">{children}</div>
+          <div className={cn("flex flex-col", isDock ? "gap-2.5 p-2.5" : "mx-auto max-w-[720px] gap-3 px-3 pb-[calc(var(--sab)+20px)] pt-3")}>{children}</div>
         </div>
       </section>
-    </div>
-  );
-}
-
-/** Short landscape screens (phones on their side): panels dock in a scrollable left column instead. */
-export function SideDock({ header, headerHeight, children, hidden }: { header: ReactNode; headerHeight: number; children: ReactNode; hidden: boolean }) {
-  const ref = useRef<HTMLDivElement>(null);
-
-  useLayoutEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const update = () => hudInset.set(hidden ? 0 : el.offsetWidth + el.offsetLeft, 0);
-    update();
-    const ro = new ResizeObserver(update);
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, [hidden]);
-  useEffect(() => () => hudInset.set(0, 0), []);
-
-  return (
-    <div
-      ref={ref}
-      className={cn(
-        "pointer-events-auto absolute bottom-[max(8px,var(--sab))] left-[max(12px,env(safe-area-inset-left))] top-2 z-20 flex w-[min(380px,46vw)] flex-col overflow-hidden rounded-[18px] border border-hairline bg-canvas shadow-lift transition-[opacity,transform,visibility] duration-300",
-        hidden && "invisible -translate-x-6 opacity-0",
-      )}
-      aria-label="Port panels"
-    >
-      <div className="shrink-0 border-b border-hairline bg-paper" style={{ height: headerHeight }}>
-        {header}
-      </div>
-      <div className="scroll-thin min-h-0 flex-1 overflow-y-auto overscroll-contain">
-        <div className="flex flex-col gap-2.5 p-2.5">{children}</div>
-      </div>
     </div>
   );
 }
