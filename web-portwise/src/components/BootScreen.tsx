@@ -252,16 +252,19 @@ export function BootScreen() {
       <div className="pointer-events-none absolute inset-0" style={{ background: "radial-gradient(ellipse at 50% 45%, rgba(255,253,248,0.9) 0%, rgba(243,239,230,0) 62%)" }} />
 
       {/* top strip */}
-      <div className="relative flex items-center justify-between px-6 pt-5 font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-slate md:px-10 md:pt-7">
+      <div className="relative flex items-center justify-between px-6 pt-[max(20px,var(--sat))] font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-slate md:px-10 md:pt-7">
         <span>Chart 4031 · Singapore Strait</span>
         <span className="hidden sm:inline">Seastar Lines · Operations</span>
       </div>
 
-      <div className={cn("relative flex flex-1 items-center justify-center px-6 transition-transform duration-[900ms] ease-out", phase === "leaving" && "scale-[1.04]")}>
-        <div className="w-full max-w-[420px]">
-          <CraneStack progress={progress} isDone={isFull} />
+      <div className={cn("relative flex min-h-0 flex-1 items-center justify-center overflow-y-auto px-6 transition-transform duration-[900ms] ease-out", phase === "leaving" && "scale-[1.04]")}>
+        <div className="w-full max-w-[420px] py-4">
+          {/* Scales down on narrow phones; hidden on short landscape screens so the progress stays in view. */}
+          <div className="origin-top max-[399px]:-mb-[36px] max-[399px]:scale-[0.85] [@media(max-height:600px)]:hidden">
+            <CraneStack progress={progress} isDone={isFull} />
+          </div>
 
-          <div className="mt-7 flex items-center gap-3">
+          <div className="mt-7 flex items-center gap-3 [@media(max-height:600px)]:mt-0">
             <img src="/icon.png" alt="" className="h-11 w-11 rounded-[12px] shadow-panel" />
             <div className="min-w-0">
               <p className="eyebrow truncate">
@@ -295,7 +298,7 @@ export function BootScreen() {
         </div>
       </div>
 
-      <div className="relative flex items-center justify-between px-6 pb-5 font-mono text-[11px] font-semibold text-slate md:px-10 md:pb-7">
+      <div className="relative flex items-center justify-between px-6 pb-[max(20px,var(--sab))] font-mono text-[11px] font-semibold text-slate md:px-10 md:pb-7">
         <span>01°16′25″N 103°46′10″E</span>
         <span>SGT · UTC+8</span>
       </div>

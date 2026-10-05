@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
 import { toast } from "sonner";
@@ -65,8 +66,18 @@ export function BerthSchedule({ focusBerth, title = "Today's berth plan" }: { fo
   useSimTick();
   const now = simNowHours();
   const { selection } = usePort();
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  // On narrow screens the 24 h chart scrolls sideways: open it centred on the now-line.
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el || el.scrollWidth <= el.clientWidth) return;
+    const label = 56;
+    el.scrollLeft = label + ((el.scrollWidth - label) * simNowHours()) / 24 - el.clientWidth / 2;
+  }, []);
+
   return (
-    <Panel className="pointer-events-auto px-4 pb-3 pt-3 md:px-5" aria-label="Berth plan">
+    <Panel className="pointer-events-auto px-3.5 pb-3 pt-3 sm:px-4 lg:px-5" aria-label="Berth plan">
       <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
         <h2 className="text-[16px] font-bold text-ink">{title}</h2>
         <p className="text-[12.5px] text-slate">Sunday, October 4, 2026</p>
@@ -80,7 +91,7 @@ export function BerthSchedule({ focusBerth, title = "Today's berth plan" }: { fo
           </Link>
         </div>
       </div>
-      <div className="scroll-thin mt-2 overflow-x-auto">
+      <div ref={scrollRef} className="scroll-thin mt-2 overflow-x-auto overscroll-x-contain pt-1">
         <div className="relative min-w-[820px]">
           <div className="relative ml-14 h-6">
             {HOURS.map((h) => (
@@ -92,7 +103,7 @@ export function BerthSchedule({ focusBerth, title = "Today's berth plan" }: { fo
           <div className="relative">
             {Array.from({ length: BERTH_COUNT }, (_, i) => i + 1).map((berth) => (
               <div key={berth} className={cn("flex h-[22px] items-stretch border-t border-hairline/70", focusBerth === berth && "bg-signal-soft/50")}>
-                <div className={cn("flex w-14 shrink-0 items-center text-[12px] font-semibold", focusBerth === berth ? "text-[#B8441A]" : "text-ink")}>Berth {berth}</div>
+                <div className={cn("sticky left-0 z-20 flex w-14 shrink-0 items-center bg-paper text-[12px] font-semibold", focusBerth === berth ? "text-[#B8441A]" : "text-ink")}>Berth {berth}</div>
                 <div className="relative flex-1">
                   {HOURS.map((h) => (
                     <span key={h} className="absolute inset-y-0 w-px bg-hairline/60" style={{ left: pct(h) }} aria-hidden="true" />

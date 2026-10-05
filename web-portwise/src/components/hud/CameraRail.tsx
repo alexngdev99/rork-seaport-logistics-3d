@@ -79,22 +79,23 @@ function HudToggle() {
 
 export function CameraRail() {
   const { goHome } = usePort();
-  const btn = "grid h-10 w-10 place-items-center text-ink transition-colors hover:bg-sand active:scale-95";
+  const btn = "grid h-11 w-11 place-items-center text-ink transition-colors hover:bg-sand active:bg-sand lg:h-10 lg:w-10";
   return (
-    <div className="pointer-events-auto flex items-center gap-2 md:flex-col md:items-end">
+    <div className="pointer-events-auto flex flex-col items-end gap-2">
     <HudToggle />
     <NightToggle />
-    <div role="toolbar" aria-label="Camera controls" className="panel flex overflow-hidden md:flex-col">
-      <button type="button" className={btn} aria-label="Zoom in" title="Zoom in" onClick={() => void cameraApi.current?.dolly(30, true)}>
+    <div role="toolbar" aria-label="Camera controls" aria-orientation="vertical" className="panel flex flex-col overflow-hidden [@media(max-height:559px)]:hidden">
+      {/* Phones pinch to zoom, so the +/- buttons are tablet/desktop only. */}
+      <button type="button" className={`${btn} max-md:hidden`} aria-label="Zoom in" title="Zoom in" onClick={() => void cameraApi.current?.dolly(30, true)}>
         <Plus className="h-[18px] w-[18px]" />
       </button>
-      <button type="button" className={`${btn} border-hairline md:border-t`} aria-label="Zoom out" title="Zoom out" onClick={() => void cameraApi.current?.dolly(-30, true)}>
+      <button type="button" className={`${btn} border-t border-hairline max-md:hidden`} aria-label="Zoom out" title="Zoom out" onClick={() => void cameraApi.current?.dolly(-30, true)}>
         <Minus className="h-[18px] w-[18px]" />
       </button>
       <button type="button" className={`${btn} border-hairline md:border-t`} aria-label="Rotate 45°" title="Rotate 45°" onClick={() => void cameraApi.current?.rotate(Math.PI / 4, 0, true)}>
         <RotateCw className="h-[17px] w-[17px]" />
       </button>
-      <button type="button" className={`${btn} border-hairline md:border-t`} aria-label="Reset view" title="Reset view" onClick={goHome}>
+      <button type="button" className={`${btn} border-t border-hairline`} aria-label="Reset view" title="Reset view" onClick={goHome}>
         <Home className="h-[17px] w-[17px]" />
       </button>
     </div>

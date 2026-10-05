@@ -44,6 +44,18 @@
     --sidebar-accent-foreground: 217.3 55.6% 15.9%;
     --sidebar-border: 41.1 25.3% 85.3%;
     --sidebar-ring: 15.9 88.3% 56.5%;
+
+    /* Safe areas (notch, home indicator) and the top bar height the HUD is laid out under. */
+    --sat: env(safe-area-inset-top, 0px);
+    --sab: env(safe-area-inset-bottom, 0px);
+    --topbar-h: 3.5rem;
+    --hud-top: calc(var(--topbar-h) + var(--sat));
+  }
+
+  @media (min-width: 768px) {
+    :root {
+      --topbar-h: 4rem;
+    }
   }
 }
 
@@ -58,10 +70,29 @@
     height: 100%;
   }
 
+  html,
+  body {
+    /* The map owns every gesture: no pull-to-refresh or rubber-band scrolling behind it. */
+    overscroll-behavior: none;
+  }
+
   body {
     @apply bg-background text-foreground font-sans antialiased;
     overflow: hidden;
     font-feature-settings: "ss01", "cv11";
+    -webkit-tap-highlight-color: transparent;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
+  /* No 300 ms double-tap-zoom delay on controls. */
+  button,
+  a,
+  summary,
+  [role="button"],
+  [role="tab"],
+  [role="switch"] {
+    touch-action: manipulation;
   }
 
   :focus-visible {
@@ -83,6 +114,21 @@
   .scroll-thin {
     scrollbar-width: thin;
     scrollbar-color: hsl(var(--border)) transparent;
+  }
+  .no-scrollbar {
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  /* Full app height that follows the mobile browser's dynamic toolbars. */
+  .pw-app {
+    height: 100%;
+    height: 100dvh;
+  }
+  .pw-safe-x {
+    padding-left: max(var(--pad-x, 0.75rem), env(safe-area-inset-left, 0px));
+    padding-right: max(var(--pad-x, 0.75rem), env(safe-area-inset-right, 0px));
   }
 }
 

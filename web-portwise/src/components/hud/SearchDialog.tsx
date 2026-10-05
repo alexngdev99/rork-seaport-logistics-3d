@@ -42,7 +42,7 @@ export function SearchDialog() {
   return (
     <CommandDialog open={searchOpen} onOpenChange={setSearchOpen} shouldFilter={false}>
       <CommandInput placeholder="Search vessels, containers, trucks, shipments…" value={q} onValueChange={setQ} />
-      <CommandList className="max-h-[420px]">
+      <CommandList className="max-h-[min(420px,calc(100dvh-140px))] overscroll-contain">
         <CommandEmpty>No results for “{q}”.</CommandEmpty>
         {results.vessels.length ? (
           <CommandGroup heading="Vessels">

@@ -5,6 +5,8 @@ export default {
   darkMode: ["class"],
   content: ["./pages/**/*.{ts,tsx}", "./components/**/*.{ts,tsx}", "./app/**/*.{ts,tsx}", "./src/**/*.{ts,tsx}"],
   prefix: "",
+  // hover: styles only apply on devices that can hover, so taps on iPad/phones don't leave sticky hover states.
+  future: { hoverOnlyWhenSupported: true },
   theme: {
     container: {
       center: true,

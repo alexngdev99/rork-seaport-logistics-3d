@@ -86,7 +86,7 @@ function ActivityLog({ vesselId }: { vesselId: string }) {
 
 function WindWidget() {
   return (
-    <Panel className="pointer-events-auto w-[220px] p-4" as="div">
+    <Panel className="pointer-events-auto w-full p-4 lg:w-[220px]" as="div">
       <div className="flex items-center gap-2 text-[12.5px] text-slate">
         <Wind className="h-4 w-4 text-brick" /> Sumatra squall · gusting
       </div>
@@ -157,7 +157,7 @@ export default function VesselDetail() {
           <IconButton label="Center camera on vessel" onClick={goHome}>
             <Locate className="h-4 w-4" />
           </IconButton>
-          <Link to="/vessels" aria-label="Close" className="grid h-9 w-9 place-items-center rounded-[10px] border border-hairline bg-paper text-ink hover:bg-sand">
+          <Link to="/vessels" aria-label="Close" className="grid h-10 w-10 place-items-center rounded-[10px] border border-hairline bg-paper text-ink hover:bg-sand lg:h-9 lg:w-9">
             <X className="h-4 w-4" />
           </Link>
         </div>
@@ -176,7 +176,7 @@ export default function VesselDetail() {
             type="button"
             aria-selected={tab === k}
             onClick={() => setTab(k)}
-            className={cn("flex-1 rounded-[8px] px-2 py-1.5 text-[12.5px] font-semibold transition-colors", tab === k ? "bg-paper text-ink shadow-sm" : "text-slate hover:text-ink")}
+            className={cn("min-h-9 flex-1 rounded-[8px] px-2 py-1.5 text-[12.5px] font-semibold transition-colors", tab === k ? "bg-paper text-ink shadow-sm" : "text-slate hover:text-ink")}
           >
             {label}
           </button>

@@ -58,13 +58,16 @@ export function TopBar() {
   }, [setSearchOpen]);
 
   return (
-    <header className="absolute inset-x-0 top-0 z-30 flex h-16 items-center gap-2 border-b border-hairline bg-paper/95 px-3 backdrop-blur-sm md:gap-4 md:px-5">
-      <NavLink to="/" className="flex shrink-0 items-center gap-2 rounded-md" aria-label="Portwise – Overview">
+    <header
+      className="pw-safe-x absolute inset-x-0 top-0 z-30 flex items-center gap-1.5 border-b border-hairline bg-paper/95 backdrop-blur-sm [--pad-x:0.625rem] sm:gap-2 md:gap-4 md:[--pad-x:1.25rem]"
+      style={{ height: "var(--hud-top)", paddingTop: "var(--sat)" }}
+    >
+      <NavLink to="/" className="flex shrink-0 items-center gap-2 rounded-md max-[359px]:hidden" aria-label="Portwise – Overview">
         <img src="/icon.png" alt="" className="h-8 w-8 rounded-[9px]" />
         <span className="hidden text-[19px] font-extrabold tracking-tight text-ink sm:inline">Portwise</span>
       </NavLink>
 
-      <nav aria-label="Main navigation" className="flex items-center gap-0.5 md:ml-2">
+      <nav aria-label="Main navigation" className="flex min-w-0 items-center gap-0.5 md:ml-2">
         {TABS.map((t) => (
           <NavLink
             key={t.to}
@@ -72,13 +75,13 @@ export function TopBar() {
             end={t.end}
             className={({ isActive }) =>
               cn(
-                "flex items-center gap-2 whitespace-nowrap rounded-[10px] px-2.5 py-2 text-[13.5px] font-semibold transition-colors md:px-3",
+                "flex h-10 min-w-10 items-center justify-center gap-2 whitespace-nowrap rounded-[10px] px-2 text-[13.5px] font-semibold transition-colors max-[359px]:min-w-9 max-[359px]:px-1.5 sm:px-2.5 xl:px-3",
                 isActive ? "bg-signal-soft text-[#B8441A]" : "text-ink/80 hover:bg-sand hover:text-ink",
               )
             }
           >
-            <t.icon className="h-[17px] w-[17px]" />
-            <span className="hidden lg:inline">{t.label}</span>
+            <t.icon className="h-[18px] w-[18px] shrink-0 xl:h-[17px] xl:w-[17px]" aria-hidden="true" />
+            <span className="sr-only xl:not-sr-only">{t.label}</span>
           </NavLink>
         ))}
       </nav>
@@ -86,16 +89,17 @@ export function TopBar() {
       <button
         type="button"
         onClick={() => setSearchOpen(true)}
-        className="ml-auto flex h-10 min-w-0 items-center gap-2.5 rounded-[11px] border border-hairline bg-canvas/60 px-3 text-left text-[13px] text-slate transition-colors hover:bg-sand md:ml-2 md:w-[260px] 2xl:w-[340px]"
+        aria-label="Search vessels, containers, trucks and sites"
+        className="ml-auto grid h-10 w-10 shrink-0 place-items-center rounded-[11px] border border-hairline bg-canvas/60 text-left text-[13px] text-slate transition-colors hover:bg-sand md:ml-2 md:flex md:w-[220px] md:items-center md:gap-2.5 md:px-3 lg:w-[260px] 2xl:w-[340px]"
       >
         <Search className="h-4 w-4 shrink-0" />
         <span className="hidden truncate md:inline">Search vessels, containers, trucks, sites…</span>
         <kbd className="ml-auto hidden rounded-md border border-hairline bg-paper px-1.5 py-0.5 font-mono text-[10.5px] text-slate md:inline">⌘K</kbd>
       </button>
 
-      <div className="flex shrink-0 items-center gap-2 md:ml-auto">
+      <div className="flex shrink-0 items-center gap-1 sm:gap-2 md:ml-auto">
         <DropdownMenu>
-          <DropdownMenuTrigger className="hidden items-center gap-2 whitespace-nowrap rounded-full border border-hairline bg-paper px-3 py-1.5 text-[12.5px] font-semibold text-ink hover:bg-sand xl:flex">
+          <DropdownMenuTrigger className="hidden items-center gap-2 whitespace-nowrap rounded-full border border-hairline bg-paper px-3 py-1.5 text-[12.5px] font-semibold text-ink hover:bg-sand 2xl:flex">
             <MapPin className="h-3.5 w-3.5 text-signal" />
             {PORT_NAME} · Singapore
             <ChevronDown className="h-3.5 w-3.5 text-slate" />
@@ -119,9 +123,9 @@ export function TopBar() {
             <Bell className="h-[19px] w-[19px]" />
             <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full border-2 border-paper bg-signal" />
           </PopoverTrigger>
-          <PopoverContent align="end" className="w-[360px] rounded-[14px] border-hairline bg-paper p-2">
+          <PopoverContent align="end" collisionPadding={12} className="w-[min(360px,calc(100vw-24px))] rounded-[14px] border-hairline bg-paper p-2">
             <p className="px-2 pb-1 pt-1 text-[14px] font-bold text-ink">All alerts</p>
-            <ul>
+            <ul className="scroll-thin max-h-[min(420px,60dvh)] overflow-y-auto overscroll-contain">
               {ALERTS.map((a) => (
                 <AlertRow key={a.id} alert={a} onOpen={() => open(a.target)} />
               ))}

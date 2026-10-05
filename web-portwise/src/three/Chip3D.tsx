@@ -31,7 +31,8 @@ export function Chip3D({ position, tone = "signal", active, pulse, onClick, chil
           type="button"
           onClick={onClick}
           className={cn(
-            "pointer-events-auto flex items-center gap-1.5 whitespace-nowrap rounded-full border bg-paper/95 font-semibold leading-none text-ink shadow-[0_1px_3px_rgba(18,35,63,0.14)] transition-[transform,padding,font-size] hover:-translate-y-0.5",
+            // The ::before pad enlarges the tap target on touch screens without making the pill bigger.
+            "pointer-events-auto relative flex items-center gap-1.5 whitespace-nowrap rounded-full border bg-paper/95 font-semibold leading-none text-ink shadow-[0_1px_3px_rgba(18,35,63,0.14)] transition-[transform,padding,font-size] before:absolute before:-inset-x-1.5 before:-inset-y-2.5 before:content-[''] hover:-translate-y-0.5",
             active
               ? "border-signal px-2.5 py-[5px] text-[11.5px] ring-2 ring-signal/25"
               : "border-hairline px-2 py-[3px] text-[10px]",

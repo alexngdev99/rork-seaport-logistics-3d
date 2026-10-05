@@ -33,6 +33,11 @@ const NIGHT = {
 };
 const smooth = (k: number): number => k * k * (3 - 2 * k);
 
+/** Phones and tablets: lighter pixel ratio and shadow map to keep frame rate and battery in check. */
+const IS_LITE = typeof window !== "undefined" && (window.matchMedia("(pointer: coarse)").matches || window.innerWidth < 1024);
+const SHADOW_MAP = IS_LITE ? 2048 : 4096;
+const DPR: [number, number] = IS_LITE ? [1, 1.5] : [1, 1.75];
+
 const YARD_CRANES: Array<[string, number]> = [
   ["B5", 0],
   ["A1", 1.7],
@@ -79,7 +84,7 @@ const Lights = memo(function Lights() {
         intensity={2.1}
         color="#FFF4E0"
         castShadow
-        shadow-mapSize={[4096, 4096]}
+        shadow-mapSize={[SHADOW_MAP, SHADOW_MAP]}
         shadow-camera-left={-470}
         shadow-camera-right={470}
         shadow-camera-top={250}
@@ -125,7 +130,7 @@ export default function PortScene() {
   return (
     <Canvas
       shadows
-      dpr={[1, 1.75]}
+      dpr={DPR}
       camera={{ fov: 30, near: 1, far: 2400, position: [220, 280, 380] }}
       gl={{ antialias: true, powerPreference: "high-performance" }}
       onCreated={() => boot.mark("engine")}

@@ -3,7 +3,8 @@ import { BootScreen } from "@/components/BootScreen";
 import { Outlet, useLocation } from "react-router-dom";
 import { TopBar } from "@/components/hud/TopBar";
 import { SearchDialog } from "@/components/hud/SearchDialog";
-import { TimeBar } from "@/components/hud/TimeBar";
+import { TimeBar, TimeKeys } from "@/components/hud/TimeBar";
+import { useIsCompact } from "@/hooks/useMediaQuery";
 import { usePort } from "@/state/PortProvider";
 import { useBootRevealed } from "@/state/boot";
 
@@ -14,14 +15,15 @@ export default function AppShell() {
   const { pathname } = useLocation();
   const { closeOverride } = usePort();
   const isRevealed = useBootRevealed();
+  const isCompact = useIsCompact();
 
   useEffect(() => {
     closeOverride();
   }, [pathname, closeOverride]);
 
   return (
-    <div className="relative h-full w-full overflow-hidden bg-canvas">
-      <div className="absolute inset-x-0 bottom-0 top-16">
+    <div className="pw-app relative w-full overflow-hidden bg-canvas">
+      <div className="absolute inset-x-0 bottom-0 top-[var(--hud-top)]">
         <Suspense fallback={null}>
           <PortScene />
         </Suspense>
@@ -31,7 +33,9 @@ export default function AppShell() {
       {isRevealed ? (
         <>
           <Outlet />
-          <TimeBar />
+          <TimeKeys />
+          {/* On phones and tablets the time controls live in the bottom sheet header. */}
+          {isCompact ? null : <TimeBar />}
         </>
       ) : null}
       <SearchDialog />

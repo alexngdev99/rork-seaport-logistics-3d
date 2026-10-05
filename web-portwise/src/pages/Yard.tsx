@@ -53,7 +53,7 @@ function BlockList({ activeId }: { activeId?: string }) {
             role="tab"
             aria-selected={yardFilter === k}
             onClick={() => setYardFilter(k)}
-            className={cn("flex-1 whitespace-nowrap rounded-[8px] px-1.5 py-1.5 text-[12px] font-semibold transition-colors", yardFilter === k ? "bg-paper text-ink shadow-sm" : "text-slate hover:text-ink")}
+            className={cn("min-h-9 flex-1 whitespace-nowrap rounded-[8px] px-1.5 py-1.5 text-[12px] font-semibold transition-colors", yardFilter === k ? "bg-paper text-ink shadow-sm" : "text-slate hover:text-ink")}
           >
             {label}
           </button>
@@ -114,7 +114,7 @@ function ContainerCard({ c }: { c: Container }) {
     <Panel className="w-full p-4" aria-label={`Container ${c.code}`}>
       <div className="flex items-center justify-between">
         <h2 className="text-[16px] font-bold text-ink">Container details</h2>
-        <Link to={`/yard/${c.blockId}`} aria-label="Close" className="grid h-9 w-9 place-items-center rounded-[10px] text-ink hover:bg-sand">
+        <Link to={`/yard/${c.blockId}`} aria-label="Close" className="grid h-10 w-10 place-items-center rounded-[10px] text-ink hover:bg-sand">
           <X className="h-4 w-4" />
         </Link>
       </div>
@@ -175,7 +175,7 @@ function BlockSummary({ block }: { block: YardBlock }) {
         title={`Block ${block.id}`}
         icon={<Boxes className="h-5 w-5" />}
         right={
-          <Link to="/yard" aria-label="Close" className="grid h-9 w-9 place-items-center rounded-[10px] text-ink hover:bg-sand">
+          <Link to="/yard" aria-label="Close" className="grid h-10 w-10 place-items-center rounded-[10px] text-ink hover:bg-sand">
             <X className="h-4 w-4" />
           </Link>
         }
@@ -226,5 +226,5 @@ export default function Yard() {
 
   const right = container ? <ContainerCard c={container} /> : block ? <BlockSummary block={block} /> : undefined;
 
-  return <HudLayout wideLeft left={<BlockList activeId={block?.id ?? container?.blockId} />} right={right} />;
+  return <HudLayout wideLeft left={<BlockList activeId={block?.id ?? container?.blockId} />} right={right} sheetOrder={["right", "left"]} />;
 }

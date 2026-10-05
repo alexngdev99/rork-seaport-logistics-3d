@@ -73,20 +73,24 @@ function Journey({ s }: { s: ShipmentT }) {
   const container = containerById(s.containerIds[0]);
   const done = s.current >= s.steps.length;
   return (
-    <Panel className="flex flex-col gap-4 px-4 py-4 md:flex-row md:items-stretch md:px-6" aria-label="Shipment journey">
+    <Panel className="flex flex-col gap-4 px-4 py-4 lg:flex-row lg:items-stretch lg:px-6" aria-label="Shipment journey">
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
           <h1 className="text-[17px] font-bold text-ink">Shipment journey</h1>
           <p className="text-[12.5px] text-slate">{s.direction === "import" ? "Import" : "Export"} · live progress through the terminal</p>
         </div>
-        <div className="scroll-thin overflow-x-auto">
-          <ol className="relative mt-5 grid min-w-[620px] grid-cols-6">
+        <div className="scroll-thin sm:overflow-x-auto">
+          {/* Phones: vertical stepper. Wider: horizontal 6-step track. */}
+          <ol className="relative mt-4 grid grid-cols-1 gap-3 sm:mt-5 sm:min-w-[620px] sm:grid-cols-6 sm:gap-0">
             {s.steps.map((step, i) => {
               const state = i < s.current ? "done" : i === s.current ? "current" : "todo";
               return (
-                <li key={step.label} className="relative flex flex-col items-center text-center">
+                <li key={step.label} className="relative flex items-center gap-3 sm:flex-col sm:gap-0 sm:text-center">
                   {i < s.steps.length - 1 ? (
-                    <span className={cn("absolute left-1/2 top-[17px] h-[3px] w-full", i < s.current ? "bg-ink" : "bg-hairline")} aria-hidden="true" />
+                    <span
+                      className={cn("absolute left-[16.5px] top-[18px] h-[calc(100%+12px)] w-[3px] sm:left-1/2 sm:top-[17px] sm:h-[3px] sm:w-full", i < s.current ? "bg-ink" : "bg-hairline")}
+                      aria-hidden="true"
+                    />
                   ) : null}
                   <span
                     className={cn(
@@ -99,15 +103,17 @@ function Journey({ s }: { s: ShipmentT }) {
                   >
                     {state === "done" ? <Check className="h-4 w-4" strokeWidth={3} /> : state === "current" ? <span className="h-3 w-3 rounded-full bg-signal" /> : i + 1}
                   </span>
-                  <span className={cn("mt-2 text-[13.5px] font-semibold", state === "todo" ? "text-slate" : "text-ink")}>{step.label}</span>
-                  <span className={cn("font-mono text-[12px] tnum", state === "current" ? "text-signal" : "text-slate")}>{step.time}</span>
+                  <span className="flex min-w-0 flex-1 items-baseline justify-between gap-2 sm:flex-col sm:items-center sm:gap-0">
+                    <span className={cn("text-[13.5px] font-semibold sm:mt-2", state === "todo" ? "text-slate" : "text-ink")}>{step.label}</span>
+                    <span className={cn("font-mono text-[12px] tnum", state === "current" ? "text-signal" : "text-slate")}>{step.time}</span>
+                  </span>
                 </li>
               );
             })}
           </ol>
         </div>
       </div>
-      <div className="shrink-0 border-hairline md:w-[320px] md:border-l md:pl-6">
+      <div className="shrink-0 border-t border-hairline pt-4 lg:w-[320px] lg:border-l lg:border-t-0 lg:pl-6 lg:pt-0">
         <div className="flex items-center justify-between gap-2">
           <DropdownMenu>
             <DropdownMenuTrigger className="flex items-center gap-1.5 rounded-md font-mono text-[20px] font-bold text-ink hover:text-signal">
@@ -164,5 +170,5 @@ export default function Shipment() {
   }, [s, setPageSelection, setView]);
 
   if (!s) return <Navigate to="/shipments/SHP-20931" replace />;
-  return <HudLayout right={<GateTable />} bottom={<Journey s={s} />} />;
+  return <HudLayout right={<GateTable />} bottom={<Journey s={s} />} sheetOrder={["bottom", "right"]} />;
 }

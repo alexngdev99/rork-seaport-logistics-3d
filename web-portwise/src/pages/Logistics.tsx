@@ -223,5 +223,12 @@ export default function Logistics() {
     setPageSelection(f ? { kind: "facility", id: f.id } : null);
   }, [f, setPageSelection, setView]);
 
-  return <HudLayout wideLeft left={<FacilityList activeId={f?.id} />} right={f ? <FacilityCard key={f.id} f={f} /> : <FlowsPanel />} />;
+  return (
+    <HudLayout
+      wideLeft
+      left={<FacilityList activeId={f?.id} />}
+      right={f ? <FacilityCard key={f.id} f={f} /> : <FlowsPanel />}
+      sheetOrder={f ? ["right", "left"] : ["left", "right"]}
+    />
+  );
 }

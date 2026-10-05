@@ -37,7 +37,7 @@ function TBtn({ label, onClick, disabled, active, className, children }: { label
       disabled={disabled}
       aria-pressed={active}
       className={cn(
-        "relative grid h-9 w-9 place-items-center rounded-[10px] text-ink transition-[background-color,transform] hover:bg-sand active:scale-90 disabled:pointer-events-none disabled:opacity-30",
+        "relative grid h-10 w-10 place-items-center rounded-[10px] text-ink transition-[background-color,transform] hover:bg-sand active:scale-90 disabled:pointer-events-none disabled:opacity-30 lg:h-9 lg:w-9",
         active && "bg-signal-soft text-[#B8441A] hover:bg-signal-soft",
         className,
       )}
@@ -47,7 +47,7 @@ function TBtn({ label, onClick, disabled, active, className, children }: { label
   );
 }
 
-function Scrubber() {
+function Scrubber({ compact = false }: { compact?: boolean }) {
   const snap = useClock();
   const { open } = usePort();
   const track = useRef<HTMLDivElement>(null);
@@ -112,7 +112,7 @@ function Scrubber() {
   const events = TIMELINE_EVENTS.filter((ev) => ev.t <= snap.liveT);
 
   return (
-    <div className="relative min-w-0 flex-1 select-none pt-1">
+    <div className={cn("relative min-w-0 flex-1 select-none", !compact && "pt-1")}>
       <div
         ref={track}
         role="slider"
@@ -127,7 +127,17 @@ function Scrubber() {
         onPointerUp={onUp}
         onPointerCancel={onUp}
         onPointerLeave={() => setHover(null)}
-        className="group relative flex h-7 cursor-pointer items-center rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ink/40"
+        onKeyDown={(e) => {
+          if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+            e.preventDefault();
+            e.stopPropagation();
+            timeControl.step((e.key === "ArrowLeft" ? -1 : 1) * (e.shiftKey ? 60 : 10));
+          } else if (e.key === "End") {
+            e.preventDefault();
+            timeControl.goLive();
+          }
+        }}
+        className={cn("group relative flex cursor-pointer touch-none items-center rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ink/40", compact ? "h-9" : "h-7")}
       >
         <div className="pw-hatch absolute inset-x-0 h-[6px] overflow-hidden rounded-full bg-sand transition-[height] group-hover:h-[8px]">
           <div ref={fill} className={cn("h-full rounded-full", snap.live ? "bg-moss" : "bg-ink")} />
@@ -144,7 +154,7 @@ function Scrubber() {
               timeControl.seek(ev.t - 4);
               open(ev.target);
             }}
-            className="group/m absolute top-1/2 z-10 -translate-x-1/2 -translate-y-1/2 p-1"
+            className={cn("group/m absolute top-1/2 z-10 -translate-x-1/2 -translate-y-1/2", compact ? "p-2" : "p-1")}
             style={{ left: pctOf(ev.t) }}
             aria-label={`${fmtClock(SIM_START_SEC + ev.t)} · ${ev.label}`}
           >
@@ -164,7 +174,7 @@ function Scrubber() {
           </span>
         ) : null}
       </div>
-      <div className="pointer-events-none relative hidden h-3.5 sm:block" aria-hidden="true">
+      <div className={cn("pointer-events-none relative h-3.5", compact ? "hidden" : "hidden sm:block")} aria-hidden="true">
         {ticks.map((t) => (
           <span key={t} className="absolute top-0 -translate-x-1/2 font-mono text-[10px] text-slate tnum" style={{ left: pctOf(t) }}>
             {fmtClock(SIM_START_SEC + t)}
@@ -176,13 +186,8 @@ function Scrubber() {
   );
 }
 
-/** Bottom playback bar: pause, rewind, fast-forward and scrub the whole 3D port through the last hour. */
-export function TimeBar() {
-  const snap = useClock();
-  const playing = snap.live || snap.rate !== 0;
-  const behind = Math.max(0, snap.liveT - snap.t);
-  const hudHidden = useHudHidden();
-
+/** Global playback shortcuts (Space, ←/→, L). Mounted once, independent of which time bar layout is showing. */
+export function TimeKeys() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.metaKey || e.ctrlKey || e.altKey) return;
@@ -204,15 +209,120 @@ export function TimeBar() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, []);
+  return null;
+}
+
+function PlayButton({ playing }: { playing: boolean }) {
+  return (
+    <button
+      type="button"
+      onClick={() => timeControl.toggle()}
+      aria-label={playing ? "Pause (Space)" : "Play (Space)"}
+      title={playing ? "Pause (Space)" : "Play (Space)"}
+      className="mx-1 grid h-11 w-11 shrink-0 place-items-center rounded-full bg-ink text-paper shadow-panel transition-[transform,background-color] hover:bg-ink/90 active:scale-90"
+    >
+      {playing ? <Pause className="h-[18px] w-[18px] fill-current" /> : <Play className="ml-0.5 h-[18px] w-[18px] fill-current" />}
+    </button>
+  );
+}
+
+function ClockReadout({ snap, className }: { snap: ClockSnapshot; className?: string }) {
+  return (
+    <div className={cn("shrink-0 leading-tight", className)} aria-live="off">
+      <p className="font-mono text-[15px] font-bold text-ink tnum lg:text-[16px]">{fmtClock(SIM_START_SEC + snap.t, true)}</p>
+      <p className={cn("truncate text-[11px] font-semibold", snap.live ? "text-moss" : snap.rate === 0 ? "text-slate" : "text-[#B8441A]")}>{modeLabel(snap)}</p>
+    </div>
+  );
+}
+
+function LiveState({ snap, short }: { snap: ClockSnapshot; short?: boolean }) {
+  const behind = Math.max(0, snap.liveT - snap.t);
+  if (snap.live) {
+    return (
+      <span className="flex h-9 shrink-0 items-center gap-2 rounded-full bg-moss-soft px-3 text-[12.5px] font-bold text-moss">
+        <span className="h-2 w-2 rounded-full bg-moss pw-blink" />
+        Live
+      </span>
+    );
+  }
+  return (
+    <button
+      type="button"
+      onClick={() => timeControl.goLive()}
+      title="Jump to live (L)"
+      aria-label={`Go live, ${fmtDuration(behind)} behind`}
+      className="flex h-10 shrink-0 items-center gap-2 rounded-full bg-signal px-3.5 text-[12.5px] font-bold text-white shadow-panel transition-transform hover:brightness-105 active:scale-95 lg:h-9 lg:px-3"
+    >
+      <Radio className="h-4 w-4" />
+      <span className={cn(short ? "inline" : "hidden sm:inline")}>Go live</span>
+      <span className={cn("font-mono text-[11px] font-semibold text-white/80", short ? "hidden min-[400px]:inline" : "hidden lg:inline")}>−{fmtDuration(behind)}</span>
+    </button>
+  );
+}
+
+/**
+ * Playback controls used inside the phone/tablet bottom sheet header.
+ * `stacked` (phones, landscape dock): scrubber on top, transport row below, like a media player.
+ */
+export function TimeControls({ stacked }: { stacked: boolean }) {
+  const snap = useClock();
+  const playing = snap.live || snap.rate !== 0;
+  const transport = (
+    <div className="flex shrink-0 items-center" role="toolbar" aria-label="Playback">
+      <TBtn label="Back 30 seconds" onClick={() => timeControl.step(-30)} className={stacked ? "max-[399px]:hidden" : ""}>
+        <StepBack className="h-[17px] w-[17px]" />
+      </TBtn>
+      <TBtn label={snap.rate < 0 ? `Rewind faster (×${-nextRate(REWIND_RATES, snap.rate)})` : "Rewind"} active={snap.rate < 0} onClick={() => timeControl.setRate(nextRate(REWIND_RATES, snap.rate))}>
+        <Rewind className="h-[17px] w-[17px]" />
+      </TBtn>
+      <PlayButton playing={playing} />
+      <TBtn label={snap.live ? "Already live" : `Fast-forward (×${nextRate(FORWARD_RATES, snap.rate)})`} disabled={snap.live} active={snap.rate > 1} onClick={() => timeControl.setRate(nextRate(FORWARD_RATES, snap.rate))}>
+        <FastForward className="h-[17px] w-[17px]" />
+      </TBtn>
+      <TBtn label="Forward 30 seconds" disabled={snap.live} onClick={() => timeControl.step(30)} className={stacked ? "max-[399px]:hidden" : ""}>
+        <StepForward className="h-[17px] w-[17px]" />
+      </TBtn>
+    </div>
+  );
+
+  if (stacked) {
+    return (
+      <div role="region" aria-label="Time controls" className="flex flex-col px-3 pb-1.5">
+        <Scrubber compact />
+        <div className="flex items-center gap-2">
+          {transport}
+          <ClockReadout snap={snap} className="ml-1 min-w-0" />
+          <div className="ml-auto">
+            <LiveState snap={snap} short />
+          </div>
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div role="region" aria-label="Time controls" className="flex h-[60px] items-center gap-3 px-3">
+      {transport}
+      <ClockReadout snap={snap} className="w-[84px]" />
+      <Scrubber compact />
+      <LiveState snap={snap} />
+    </div>
+  );
+}
+
+/** Desktop bottom playback bar: pause, rewind, fast-forward and scrub the whole 3D port through the last hour. */
+export function TimeBar() {
+  const snap = useClock();
+  const playing = snap.live || snap.rate !== 0;
+  const hudHidden = useHudHidden();
 
   return (
     <div
       className={cn(
-        "pointer-events-none absolute inset-x-3 bottom-3 z-20 transition-[opacity,transform,visibility] duration-300 md:inset-x-4 md:bottom-4",
+        "pointer-events-none absolute inset-x-4 bottom-[max(16px,var(--sab))] z-20 transition-[opacity,transform,visibility] duration-300",
         hudHidden && "invisible translate-y-6 opacity-0",
       )}
     >
-      <div role="region" aria-label="Time controls" className="panel pw-rise pointer-events-auto flex h-[60px] items-center gap-2 px-2.5 md:gap-4 md:px-3.5">
+      <div role="region" aria-label="Time controls" className="panel pw-rise pointer-events-auto flex h-[60px] items-center gap-4 px-3.5">
         <div className="flex shrink-0 items-center gap-0.5" role="toolbar" aria-label="Playback">
           <TBtn label="Back 30 seconds" onClick={() => timeControl.step(-30)} className="hidden sm:grid">
             <StepBack className="h-[17px] w-[17px]" />
@@ -220,15 +330,7 @@ export function TimeBar() {
           <TBtn label={snap.rate < 0 ? `Rewind faster (×${-nextRate(REWIND_RATES, snap.rate)})` : "Rewind"} active={snap.rate < 0} onClick={() => timeControl.setRate(nextRate(REWIND_RATES, snap.rate))}>
             <Rewind className="h-[17px] w-[17px]" />
           </TBtn>
-          <button
-            type="button"
-            onClick={() => timeControl.toggle()}
-            aria-label={playing ? "Pause (Space)" : "Play (Space)"}
-            title={playing ? "Pause (Space)" : "Play (Space)"}
-            className="mx-1 grid h-11 w-11 place-items-center rounded-full bg-ink text-paper shadow-panel transition-[transform,background-color] hover:bg-ink/90 active:scale-90"
-          >
-            {playing ? <Pause className="h-[18px] w-[18px] fill-current" /> : <Play className="ml-0.5 h-[18px] w-[18px] fill-current" />}
-          </button>
+          <PlayButton playing={playing} />
           <TBtn label={snap.live ? "Already live" : `Fast-forward (×${nextRate(FORWARD_RATES, snap.rate)})`} disabled={snap.live} active={snap.rate > 1} onClick={() => timeControl.setRate(nextRate(FORWARD_RATES, snap.rate))}>
             <FastForward className="h-[17px] w-[17px]" />
           </TBtn>
@@ -237,30 +339,11 @@ export function TimeBar() {
           </TBtn>
         </div>
 
-        <div className="hidden w-[92px] shrink-0 leading-tight md:block">
-          <p className="font-mono text-[16px] font-bold text-ink tnum">{fmtClock(SIM_START_SEC + snap.t, true)}</p>
-          <p className={cn("truncate text-[11px] font-semibold", snap.live ? "text-moss" : snap.rate === 0 ? "text-slate" : "text-[#B8441A]")}>{modeLabel(snap)}</p>
-        </div>
+        <ClockReadout snap={snap} className="w-[92px]" />
 
         <Scrubber />
 
-        {snap.live ? (
-          <span className="flex h-9 shrink-0 items-center gap-2 rounded-full bg-moss-soft px-3 text-[12.5px] font-bold text-moss">
-            <span className="h-2 w-2 rounded-full bg-moss pw-blink" />
-            Live
-          </span>
-        ) : (
-          <button
-            type="button"
-            onClick={() => timeControl.goLive()}
-            title="Jump to live (L)"
-            className="flex h-9 shrink-0 items-center gap-2 rounded-full bg-signal px-3 text-[12.5px] font-bold text-white shadow-panel transition-transform hover:brightness-105 active:scale-95"
-          >
-            <Radio className="h-4 w-4" />
-            <span className="hidden sm:inline">Go live</span>
-            <span className="hidden font-mono text-[11px] font-semibold text-white/80 lg:inline">−{fmtDuration(behind)}</span>
-          </button>
-        )}
+        <LiveState snap={snap} />
       </div>
     </div>
   );

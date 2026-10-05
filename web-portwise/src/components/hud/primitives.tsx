@@ -75,7 +75,7 @@ export function IconButton({ label, onClick, children, className }: { label: str
       aria-label={label}
       title={label}
       onClick={onClick}
-      className={cn("grid h-9 w-9 place-items-center rounded-[10px] border border-hairline bg-paper text-ink transition-colors hover:bg-sand active:scale-95", className)}
+      className={cn("grid h-10 w-10 place-items-center rounded-[10px] border border-hairline bg-paper text-ink transition-colors hover:bg-sand active:scale-95 lg:h-9 lg:w-9", className)}
     >
       {children}
     </button>

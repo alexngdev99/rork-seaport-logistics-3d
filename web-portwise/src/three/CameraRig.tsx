@@ -1,7 +1,8 @@
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
-import { useFrame } from "@react-three/fiber";
-import { CameraControls } from "@react-three/drei";
+import { useFrame, useThree } from "@react-three/fiber";
+import { CameraControls, CameraControlsImpl } from "@react-three/drei";
+import { hudInset } from "@/state/hudInset";
 import type { Selection } from "@/data/types";
 import { blockById, craneById, truckById, vesselById } from "@/data/port";
 import { containerById, shipmentById } from "@/data/containers";
@@ -32,6 +33,13 @@ const VIEWS: Record<CameraView, Shot> = {
 export const cameraApi: { current: CameraControls | null } = { current: null };
 
 const tmp = new THREE.Vector3();
+const tmpTarget = new THREE.Vector3();
+
+/**
+ * Portrait screens see far less of the port horizontally at the same FOV, so shots pull back.
+ * Bucketed so small viewport changes (mobile toolbars collapsing) never re-fly the camera.
+ */
+const fitFor = (aspect: number): number => (aspect >= 1.25 ? 1 : aspect >= 0.85 ? 1.3 : 1.75);
 
 function shotFor(sel: Selection): Shot | null {
   switch (sel.kind) {
@@ -82,11 +90,17 @@ export function CameraRig() {
   const followKey = useRef<string | undefined>(undefined);
   const key = selKey(selection);
   const isRevealed = useBootRevealed();
+  const fit = useThree((s) => fitFor(s.size.width / Math.max(1, s.size.height)));
+  const viewOff = useRef<{ x: number; y: number; w: number; h: number }>({ x: 0, y: 0, w: 0, h: 0 });
 
   useEffect(() => {
     cameraApi.current = ref.current;
     const c = ref.current;
     if (c) {
+      // Map-style touch: one finger pans along the ground, two fingers pinch-zoom and rotate/tilt, three truck.
+      c.touches.one = CameraControlsImpl.ACTION.TOUCH_SCREEN_PAN;
+      c.touches.two = CameraControlsImpl.ACTION.TOUCH_DOLLY_ROTATE;
+      c.touches.three = CameraControlsImpl.ACTION.TOUCH_TRUCK;
       const v = VIEWS.overview;
       c.setLookAt(v.target[0] + v.offset[0] * 1.5, v.offset[1] * 1.7, v.target[2] + v.offset[2] * 1.5, v.target[0], v.target[1], v.target[2], false);
     }
@@ -110,18 +124,40 @@ export function CameraRig() {
       }
     }
     const [tx, ty, tz] = target;
-    const [ox, oy, oz] = shot.offset;
+    // Close-ups pull back less than page-wide establishing shots.
+    const k = selection ? 1 + (fit - 1) * 0.6 : fit;
+    const [ox, oy, oz] = shot.offset.map((o) => o * k);
     void c.setLookAt(tx + ox, ty + oy, tz + oz, tx, ty, tz, true);
-  }, [key, view, homeNonce, selection, isRevealed]);
+  }, [key, view, homeNonce, selection, isRevealed, fit]);
 
-  useFrame(() => {
+  useFrame((state, dt) => {
+    // Shift the projection so the camera target sits in the middle of the map area the HUD leaves visible.
+    const cam = state.camera as THREE.PerspectiveCamera;
+    const { left, bottom } = hudInset.get();
+    const o = viewOff.current;
+    const w = state.size.width;
+    const h = state.size.height;
+    const goalX = -left / 2;
+    const goalY = bottom / 2;
+    const ease = Math.min(1, dt * 6);
+    const nx = Math.abs(goalX - o.x) < 0.5 ? goalX : o.x + (goalX - o.x) * ease;
+    const ny = Math.abs(goalY - o.y) < 0.5 ? goalY : o.y + (goalY - o.y) * ease;
+    if (nx !== o.x || ny !== o.y || w !== o.w || h !== o.h) {
+      o.x = nx;
+      o.y = ny;
+      o.w = w;
+      o.h = h;
+      if (nx === 0 && ny === 0) cam.clearViewOffset();
+      else cam.setViewOffset(w, h, nx, ny, w, h);
+    }
+
     const c = ref.current;
     const k = followKey.current;
     if (!c || !k) return;
     const obj = sceneRegistry.get(k);
     if (!obj || !obj.visible) return;
     obj.getWorldPosition(tmp);
-    const cur = c.getTarget(new THREE.Vector3());
+    const cur = c.getTarget(tmpTarget);
     if (cur.distanceToSquared(tmp.setY(cur.y)) > 0.04) void c.moveTo(tmp.x, cur.y, tmp.z, true);
   });
 
